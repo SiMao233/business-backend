@@ -1,0 +1,4 @@
+# 此目录存放 Alembic 迁移脚本（versions/）
+# 当前阶段无业务模型，暂不生成迁移；后续通过以下命令生成：
+#   uv run alembic revision --autogenerate -m "描述"
+#   uv run alembic upgrade head

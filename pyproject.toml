@@ -1,0 +1,58 @@
+[project]
+name = "business-backend"
+version = "0.1.0"
+description = "企业级 AI 平台业务控制后台（Modular Monolith）"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115,<1.0",
+    "uvicorn[standard]>=0.34,<1.0",
+    "sqlalchemy[asyncio]>=2.0,<3.0",
+    "aiomysql>=0.2.0,<0.3.0",
+    "cryptography>=44.0.0",
+    "alembic>=1.14,<2.0",
+    "redis>=5.2,<7.0",
+    "pydantic>=2.10,<3.0",
+    "pydantic-settings>=2.7,<3.0",
+    "PyJWT>=2.10,<3.0",
+    "bcrypt>=4.2,<5.0",
+    "python-multipart>=0.0.20",
+    "email-validator>=2.2,<3.0",
+    "httpx>=0.28,<1.0",
+    "orjson>=3.10",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "pytest-asyncio>=0.25",
+    "ruff>=0.9",
+    "mypy>=1.14",
+]
+
+[tool.uv]
+# 应用型项目（非发布包），无需构建安装
+package = false
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+# 追加排除项（保留默认排除：.venv、node_modules 等）
+extend-exclude = [".uv-cache"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "C4", "SIM"]
+
+[tool.ruff.lint.per-file-ignores]
+# FastAPI 依赖注入的 Annotated 写法已规避 B008；此处为测试夹具等保留豁免
+"tests/*.py" = ["B018"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
