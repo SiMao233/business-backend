@@ -6,7 +6,7 @@ TODO(role): 定义角色管理相关表模型（若复用 iam 的 roles 表则�
 
 from uuid import UUID, uuid4
 
-from sqlalchemy import SmallInteger, String, Uuid
+from sqlalchemy import Boolean, SmallInteger, String, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base, TimestampMixin
@@ -45,6 +45,14 @@ class Role(
     status: Mapped[int] = mapped_column(
         SmallInteger,
         default=1
+    )
+
+    # 是否系统内置角色（由 seed 创建，如"超级管理员"，禁止删除/禁用）
+    is_builtin: Mapped[bool] = mapped_column(
+        Boolean,
+        default=False,
+        nullable=False,
+        server_default="0",
     )
 
     users = relationship(

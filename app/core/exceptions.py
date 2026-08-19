@@ -67,7 +67,7 @@ class ValidateError(AppError):
 
 def register_exception_handlers(app: FastAPI) -> None:
     """注册全局异常处理器，统一输出 `ApiResponse` 结构。"""
-
+    
     @app.exception_handler(AppError)
     async def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
         return JSONResponse(
@@ -91,4 +91,13 @@ def register_exception_handlers(app: FastAPI) -> None:
         return JSONResponse(
             status_code=422,
             content=error(code=1422, message=message).model_dump(),
+        )
+
+    @app.exception_handler(Exception)
+    async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+        # 兜底：未预期的运行时异常统一返回 ApiResponse 结构，避免裸奔 traceback
+        # 生产环境建议在此记录日志：logger.exception("Unhandled exception", exc_info=exc)
+        return JSONResponse(
+            status_code=500,
+            content=error(code=500, message="服务器内部错误").model_dump(),
         )

@@ -9,6 +9,7 @@
 from fastapi import APIRouter
 
 from app.modules.agent.api import router as agent_router
+from app.modules.file.api import router as file_router
 from app.modules.iam.api import router as iam_router
 from app.modules.knowledge.api import router as knowledge_router
 from app.modules.model.api import router as model_router
@@ -18,6 +19,7 @@ from app.modules.system.api import router as system_router
 # 按模块注册；后续模块若存在依赖关系，可按依赖顺序调整
 MODULES: list[APIRouter] = [
     iam_router,
+    file_router,
     organization_router,
     agent_router,
     knowledge_router,

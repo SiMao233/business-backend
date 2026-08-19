@@ -10,7 +10,10 @@ from app.modules.system.permission.schema import PermissionOut
 
 
 class RoleCreate(BaseModel):
-    """创建角色的入参。"""
+    """创建角色的入参。
+
+    注意：`is_builtin` 由系统（seed）控制，界面创建一律为 False，不可自建"内置"角色。
+    """
 
     code: str = Field(min_length=1, max_length=50, description="角色编码，如 admin")
     name: str = Field(min_length=1, max_length=50, description="角色名称")
@@ -36,6 +39,7 @@ class RoleOut(ApiOutModel):
     name: str
     description: str | None = None
     status: int
+    is_builtin: bool = False
     permissions: list[PermissionOut] = Field(default_factory=list)
     create_time: UtcDateTime
     update_time: UtcDateTime

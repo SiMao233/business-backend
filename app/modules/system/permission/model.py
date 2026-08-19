@@ -7,7 +7,7 @@
 
 from uuid import UUID, uuid4
 
-from sqlalchemy import ForeignKey, SmallInteger, String, Uuid
+from sqlalchemy import Boolean, ForeignKey, SmallInteger, String, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base, TimestampMixin
@@ -61,6 +61,14 @@ class Permission(
     status: Mapped[int] = mapped_column(
         SmallInteger,
         default=1
+    )
+
+    # 是否系统内置权限（由 seed 从 codes.py 同步创建，禁止删除/禁用/改类型）
+    is_builtin: Mapped[bool] = mapped_column(
+        Boolean,
+        default=False,
+        nullable=False,
+        server_default="0",
     )
 
     roles = relationship(

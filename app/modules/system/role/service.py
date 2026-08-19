@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.common.pagination import PageParams, PageResult
 from app.core.exceptions import BizError, NotFoundError
-from app.modules.system.permission.service import PermissionService
+from app.modules.system.permission.repository import PermissionRepository
 from app.modules.system.role.model import Role
 from app.modules.system.role.repository import RoleRepository
 from app.modules.system.role.schema import (
@@ -61,6 +61,9 @@ class RoleService:
         role = await self.repo.get_by_id(role_id)
         if not role:
             raise NotFoundError("角色不存在")
+        # 系统内置角色：禁止禁用（仅允许改名称/描述）
+        if role.is_builtin and req.status == 0:
+            raise BizError("系统内置角色不允许禁用")
         role.name = req.name
         role.description = req.description
         role.status = req.status
@@ -70,6 +73,8 @@ class RoleService:
         role = await self.repo.get_by_id(role_id)
         if not role:
             raise NotFoundError("角色不存在")
+        if role.is_builtin:
+            raise BizError("系统内置角色不允许删除")
         await self.repo.delete(role)
 
     # 分配权限（全量覆盖）：校验权限存在性并自动补全父链节点后绑定
@@ -82,7 +87,7 @@ class RoleService:
         if len(permissions) != len(ids):
             raise BizError("存在无效的权限 ID")
         all_perms = await self.repo.list_all_permissions()
-        final_ids = PermissionService.expand_with_ancestors(all_perms, set(ids))
+        final_ids = PermissionRepository.expand_with_ancestors(all_perms, set(ids))
         final_perms = [p for p in all_perms if p.id in final_ids]
         await self.repo.set_permissions(role, final_perms)
         return RoleOut.model_validate(role)

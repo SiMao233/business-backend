@@ -18,8 +18,7 @@ from app.core.database import Base
 # TODO: 各模块模型定义完成后在此导入，例如：
 #   from app.modules.iam import model  # noqa: F401
 #   from app.modules.agent import model  # noqa: F401
-from app.models import User, Role, UserRole, Permission, RolePermission
-
+from app.models import Permission, Role, RolePermission, SysFile, User, UserRole  # noqa: F401
 
 config = context.config
 

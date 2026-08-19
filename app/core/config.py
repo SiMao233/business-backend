@@ -31,6 +31,9 @@ class Settings(BaseSettings):
     # 应用内时间基准统一为 UTC（存储/输出均 UTC），前端负责转换为本地时区展示。
     app_timezone: str = "Asia/Shanghai"
 
+    # 初始超管账号密码（仅 seed 初始化首次创建时使用，生产务必通过 .env 覆盖为强密码）
+    app_admin_password: str = "Admin@123456"
+
     # ---- 数据库 (MySQL 8) ----
     # 注意：以下仅为本地开发占位默认值，不含任何真实凭据。
     # 真实连接信息请通过 .env 注入（.env 已被 .gitignore 忽略，不会提交到 Git）。
@@ -59,6 +62,23 @@ class Settings(BaseSettings):
 
     # ---- CORS ----
     cors_origins: list[str] = Field(default_factory=lambda: ["http://localhost:3000"])
+
+    # ---- 文件存储 ----
+    # 本地存储根目录（相对项目根；生产可改为对象存储，见 app/modules/file/storage.py 抽象）
+    file_storage_dir: str = "storage"
+    # 单文件大小上限（字节），默认 10MB
+    file_max_size: int = 10 * 1024 * 1024
+    # 允许上传的扩展名白名单（不含点）
+    file_allowed_extensions: list[str] = Field(
+        default_factory=lambda: [
+            "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx",
+            "txt", "md", "csv",
+            "png", "jpg", "jpeg", "gif", "webp", "svg",
+            "mp3", "mp4", "zip",
+        ]
+    )
+    # 可选：对外公开访问的基础 URL（如 CDN / 网关前缀），为空则返回相对下载路径
+    file_public_base_url: str = ""
 
     # ---- 日志 ----
     log_level: str = "INFO"

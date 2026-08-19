@@ -17,3 +17,15 @@ class CommonStatus(BaseEnum):
 
     ENABLED = "enabled"
     DISABLED = "disabled"
+
+
+class FileBizType(BaseEnum):
+    """文件业务类型：标记文件归属的业务场景（通用 file 模块复用）。
+
+    后续新增业务场景时在此扩展枚举值即可。
+    """
+
+    KNOWLEDGE_DOC = "knowledge_doc"          # 知识库文档
+    AVATAR = "avatar"                        # 用户头像
+    AGENT_ATTACHMENT = "agent_attachment"    # Agent 附件 / 图标
+    ATTACHMENT = "attachment"                # 通用附件

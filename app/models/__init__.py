@@ -1,17 +1,16 @@
 # 用户
-from app.modules.system.user.model import User
+# 文件
+from app.modules.file.model import SysFile
 
-# 角色
-from app.modules.system.role.model import Role
+# 关联表
+from app.modules.iam.model import RolePermission, UserRole
 
 # 权限
 from app.modules.system.permission.model import Permission
 
-# 关联表
-from app.modules.iam.model import (
-    UserRole,
-    RolePermission
-)
+# 角色
+from app.modules.system.role.model import Role
+from app.modules.system.user.model import User
 
 __all__ = [
     "User",
@@ -19,4 +18,5 @@ __all__ = [
     "Permission",
     "UserRole",
     "RolePermission",
+    "SysFile",
 ]

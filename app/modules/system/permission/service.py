@@ -85,6 +85,13 @@ class PermissionService:
         permission = await self.repo.get_by_id(permission_id)
         if not permission:
             raise NotFoundError("权限不存在")
+        # 系统内置权限：禁止禁用、改类型、挪父节点（仅允许改名称/描述）
+        if permission.is_builtin and (
+            req.status == 0
+            or req.type != permission.type
+            or req.parent_id != permission.parent_id
+        ):
+            raise BizError("系统内置权限不允许禁用、修改类型或移动")
         await self._validate_parent(req.parent_id, exclude_id=permission_id)
         permission.name = req.name
         permission.type = req.type
@@ -93,11 +100,13 @@ class PermissionService:
         permission.status = req.status
         return self._to_out(await self.repo.update(permission))
 
-    # 删除权限：存在子权限或被角色绑定时拒绝删除
+    # 删除权限：存在子权限、被角色绑定、或为系统内置权限时拒绝删除
     async def delete(self, permission_id: UUID) -> None:
         permission = await self.repo.get_by_id(permission_id)
         if not permission:
             raise NotFoundError("权限不存在")
+        if permission.is_builtin:
+            raise BizError("系统内置权限不允许删除")
         all_perms = await self.repo.list_all()
         if any(p.parent_id == permission_id for p in all_perms):
             raise BizError("存在子权限，请先删除子权限")
