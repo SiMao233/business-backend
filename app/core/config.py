@@ -60,6 +60,12 @@ class Settings(BaseSettings):
     jwt_access_token_expire_minutes: int = 30
     jwt_refresh_token_expire_days: int = 7
 
+    # ---- 登录密码 RSA 加密 ----
+    # 密钥对通过 `openssl genrsa` 生成，位于项目根 keys/ 目录（已 gitignore，勿提交）
+    # 前端使用公钥加密密码，后端使用私钥解密后走 bcrypt 校验
+    rsa_private_key_path: str = "keys/private.pem"
+    rsa_public_key_path: str = "keys/public.pem"
+
     # ---- CORS ----
     cors_origins: list[str] = Field(default_factory=lambda: ["http://localhost:3000"])
 

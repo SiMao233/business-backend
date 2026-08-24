@@ -5,14 +5,15 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.common.pagination import PageResult
 from app.common.response import ApiResponse, success
 from app.core.database import get_db
-from app.middleware.authentication import get_current_user
+from app.middleware.authentication import CurrentUserDep, get_current_user
 from app.middleware.permission import require_permissions
+from app.modules.system.operation_log.service import OperationLogService
 from app.modules.system.permission.codes import PermissionCode
 from app.modules.system.role.schema import (
     RoleCreate,
@@ -81,9 +82,17 @@ async def create_role(
 async def assign_permissions(
     role_id: UUID,
     req: RolePermissionsReq,
+    request: Request,
+    current: CurrentUserDep,
+    db: DbDep,
     service: Annotated[RoleService, Depends(get_service)],
 ) -> ApiResponse[RoleOut]:
-    return success(data=await service.assign_permissions(role_id, req), message="分配成功")
+    result = await service.assign_permissions(role_id, req, current)
+    await OperationLogService(db).record(
+        user=current, module="role", action="assignPermissions", target_id=role_id,
+        detail={"permission_ids": [str(i) for i in req.permission_ids]}, request=request,
+    )
+    return success(data=result, message="分配成功")
 
 
 # 更新角色接口：根据 ID 更新角色信息
@@ -107,7 +116,15 @@ async def update_role(
     dependencies=[Depends(require_permissions(PermissionCode.ROLE_DELETE))],
 )
 async def delete_role(
-    role_id: UUID, service: Annotated[RoleService, Depends(get_service)]
+    role_id: UUID,
+    request: Request,
+    current: CurrentUserDep,
+    db: DbDep,
+    service: Annotated[RoleService, Depends(get_service)],
 ) -> ApiResponse[None]:
-    await service.delete(role_id)
+    deleted = await service.delete(role_id, current)
+    await OperationLogService(db).record(
+        user=current, module="role", action="delete", target_id=role_id,
+        detail={"code": deleted.code, "name": deleted.name}, request=request,
+    )
     return success(message="删除成功")

@@ -4,7 +4,7 @@
 """
 
 from app.modules.iam.model import RolePermission, UserRole
-from app.modules.system.models import Permission, Role, User
+from app.modules.system.models import OperationLog, Permission, Role, User
 
 
-__all__ = ["User", "Role", "Permission", "UserRole", "RolePermission"]
+__all__ = ["User", "Role", "Permission", "UserRole", "RolePermission", "OperationLog"]

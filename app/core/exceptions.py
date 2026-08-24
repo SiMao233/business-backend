@@ -10,6 +10,7 @@ from typing import Any
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from loguru import logger
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.common.response import error
@@ -96,7 +97,7 @@ def register_exception_handlers(app: FastAPI) -> None:
     @app.exception_handler(Exception)
     async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
         # 兜底：未预期的运行时异常统一返回 ApiResponse 结构，避免裸奔 traceback
-        # 生产环境建议在此记录日志：logger.exception("Unhandled exception", exc_info=exc)
+        logger.exception("Unhandled exception: {} {}", request.method, request.url.path)
         return JSONResponse(
             status_code=500,
             content=error(code=500, message="服务器内部错误").model_dump(),

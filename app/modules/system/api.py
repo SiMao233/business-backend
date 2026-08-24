@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.common.response import ApiResponse, success
 from app.core.database import get_db
 from app.core.redis import get_redis
+from app.modules.system.operation_log.api import router as operation_log_router
 from app.modules.system.permission.api import router as permission_router
 from app.modules.system.role.api import router as role_router
 from app.modules.system.user.api import router as user_router
@@ -23,10 +24,11 @@ from app.modules.system.user.api import router as user_router
 # 系统总路由（URL 前缀 /system）
 router = APIRouter(prefix="/system", tags=["系统"])
 
-# 聚合管理子模块路由：/system/user、/system/role、/system/permission
+# 聚合管理子模块路由：/system/user、/system/role、/system/permission、/system/operation-log
 router.include_router(user_router)
 router.include_router(role_router)
 router.include_router(permission_router)
+router.include_router(operation_log_router)
 
 DbDep = Annotated[AsyncSession, Depends(get_db)]
 RedisDep = Annotated[Redis, Depends(get_redis)]

@@ -4,6 +4,7 @@ import time
 from uuid import UUID
 
 import jwt
+from loguru import logger
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -48,10 +49,13 @@ class IamService:
         user = await self.repo.get_by_username(req.username)
         # 用户不存在与密码错误返回相同提示，避免账号枚举
         if not user or not verify_password(req.password, user.password_hash):
+            logger.warning("登录失败 username={} ip={}", req.username, ip)
             raise UnauthorizedError("用户名或密码错误")
         if user.status != 1:
+            logger.warning("登录失败(账号禁用) username={} ip={}", req.username, ip)
             raise UnauthorizedError("账号已被禁用")
         await self.repo.update_login_info(user, ip or "")
+        logger.info("用户登录成功 user_id={} ip={}", user.id.hex, ip)
         # 单会话：重新登录即递增版本号，使该用户之前所有令牌立即失效 （想要单会话就取消下面一行的注释）
         # await revoke_all_sessions(self.redis, user.id)
         return await self._issue_tokens(user)
@@ -108,7 +112,9 @@ class IamService:
     # 签发令牌对：refresh token 写入 Redis（TTL = 配置的刷新有效期）
     async def _issue_tokens(self, user: User) -> TokenOut:
         version = await self._get_token_version(user.id)
-        access_token = create_access_token(str(user.id.hex), version=version)
+        access_token = create_access_token(
+            str(user.id.hex), version=version, username=user.username
+        )
         refresh_token = create_refresh_token(str(user.id.hex), version=version)
         payload = decode_token(refresh_token)
         ttl = settings.jwt_refresh_token_expire_days * 86400

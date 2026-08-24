@@ -16,9 +16,16 @@ settings = get_settings()
 
 
 def create_access_token(
-    subject: str, expires_minutes: int | None = None, version: int | None = None
+    subject: str,
+    expires_minutes: int | None = None,
+    version: int | None = None,
+    username: str | None = None,
 ) -> str:
-    """签发 JWT 访问令牌。`subject` 一般为用户标识；`version` 为令牌版本号（强制下线用）。"""
+    """签发 JWT 访问令牌。`subject` 一般为用户标识；`version` 为令牌版本号（强制下线用）。
+
+    `username` 为登录用户名快照，写入令牌供鉴权依赖直接读取（避免每次查库），
+    用于操作日志 / 审计等场景记录操作人。
+    """
     now = datetime.now(UTC)
     expire = now + timedelta(minutes=expires_minutes or settings.jwt_access_token_expire_minutes)
     payload = {
@@ -30,6 +37,8 @@ def create_access_token(
     }
     if version is not None:
         payload["ver"] = version
+    if username is not None:
+        payload["username"] = username
     return jwt.encode(payload, settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
 
 
@@ -60,6 +69,31 @@ def decode_token(token: str) -> dict[str, object]:
     校验失败（过期/签名错误等）抛出 `jwt.PyJWTError` 子类。
     """
     return jwt.decode(token, settings.jwt_secret_key, algorithms=[settings.jwt_algorithm])
+
+
+def rsa_decrypt_password(cipher_b64: str) -> str:
+    """解密前端用公钥加密的登录密码，还原明文（私钥仅在服务端）。
+
+    - 前端使用 RSA/ECB/PKCS1v15 填充（与 JSEncrypt 默认一致）加密后 base64 编码。
+    - 每次调用读取私钥文件；如需更高吞吐可改为进程内缓存加载。
+    - 解密失败（密文非法 / 私钥不匹配等）抛出 `cryptography` 异常。
+    """
+    import base64
+
+    from cryptography.hazmat.primitives import serialization
+    from cryptography.hazmat.primitives.asymmetric import padding
+
+    with open(settings.rsa_private_key_path, "rb") as f:
+        private_key = serialization.load_pem_private_key(f.read(), password=None)
+    cipher = base64.b64decode(cipher_b64)
+    plain = private_key.decrypt(cipher, padding.PKCS1v15())
+    return plain.decode("utf-8")
+
+
+def load_public_key_pem() -> str:
+    """读取 RSA 公钥 PEM 文本，供前端加密密码使用（公钥可公开）。"""
+    with open(settings.rsa_public_key_path, "rb") as f:
+        return f.read().decode("utf-8")
 
 
 def hash_password(plain_password: str) -> str:

@@ -81,6 +81,7 @@ async def get_current_user(
         raise UnauthorizedError("认证令牌已失效")
     user_ctx = UserContext(
         user_id=UUID(payload["sub"]),
+        username=payload.get("username"),  # 旧令牌可能无该字段，取不到则为 None
         jti=jti,
         exp=int(payload["exp"]),
     )

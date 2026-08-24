@@ -2,12 +2,14 @@
 
 from uuid import UUID
 
+from loguru import logger
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.common.pagination import PageParams, PageResult
 from app.core.exceptions import BizError, NotFoundError
 from app.core.security import hash_password
+from app.middleware.authentication import UserContext
 from app.modules.iam.service import revoke_all_sessions
 from app.modules.system.user.model import User
 from app.modules.system.user.repository import UserRepository
@@ -74,7 +76,7 @@ class UserService:
         return UserOut.model_validate(await self.repo.create(user))
 
     # 更新用户：校验邮箱唯一性，支持更新角色关联
-    async def update(self, user_id: UUID, req: UserUpdate) -> UserOut:
+    async def update(self, user_id: UUID, req: UserUpdate, operator: UserContext | None = None) -> UserOut:
         user = await self.repo.get_by_id(user_id)
         if not user:
             raise NotFoundError("用户不存在")
@@ -96,6 +98,7 @@ class UserService:
         # 禁用账号：强制踢掉该用户所有在线会话
         if req.status == 0:
             await revoke_all_sessions(self.redis, user_id)
+        logger.info("更新用户 user_id={} by={}", user_id, operator.username if operator else "system")
         return result
 
     # 重置用户密码：重新生成并保存密码哈希（user_id 从请求体获取）
@@ -108,8 +111,8 @@ class UserService:
         # 改密码后强制踢掉该用户所有在线会话（旧密码对应的 token 全部失效）
         await revoke_all_sessions(self.redis, req.user_id)
 
-    # 删除用户：超级管理员禁止删除
-    async def delete(self, user_id: UUID) -> None:
+    # 删除用户：超级管理员禁止删除；返回被删用户供审计记录
+    async def delete(self, user_id: UUID, operator: UserContext | None = None) -> User:
         user = await self.repo.get_by_id(user_id)
         if not user:
             raise NotFoundError("用户不存在")
@@ -118,3 +121,8 @@ class UserService:
         await self.repo.delete(user)
         # 删除账号后强制踢掉其所有在线会话
         await revoke_all_sessions(self.redis, user_id)
+        logger.warning(
+            "删除用户 user_id={} username={} by={}",
+            user_id, user.username, operator.username if operator else "system",
+        )
+        return user

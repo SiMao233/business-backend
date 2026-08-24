@@ -3,7 +3,7 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -11,8 +11,9 @@ from app.common.pagination import PageResult
 from app.common.response import ApiResponse, success
 from app.core.database import get_db
 from app.core.redis import get_redis
-from app.middleware.authentication import get_current_user
+from app.middleware.authentication import CurrentUserDep, get_current_user
 from app.middleware.permission import require_permissions
+from app.modules.system.operation_log.service import OperationLogService
 from app.modules.system.permission.codes import PermissionCode
 from app.modules.system.user.schema import (
     UserCreate,
@@ -110,7 +111,15 @@ async def reset_password(
     dependencies=[Depends(require_permissions(PermissionCode.USER_DELETE))],
 )
 async def delete_user(
-    user_id: UUID, service: Annotated[UserService, Depends(get_service)]
+    user_id: UUID,
+    request: Request,
+    current: CurrentUserDep,
+    db: DbDep,
+    service: Annotated[UserService, Depends(get_service)],
 ) -> ApiResponse[None]:
-    await service.delete(user_id)
+    deleted = await service.delete(user_id, current)
+    await OperationLogService(db).record(
+        user=current, module="user", action="delete", target_id=user_id,
+        detail={"username": deleted.username}, request=request,
+    )
     return success(message="删除成功")

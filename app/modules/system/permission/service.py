@@ -2,10 +2,12 @@
 
 from uuid import UUID
 
+from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.common.pagination import PageParams, PageResult
 from app.core.exceptions import BizError, NotFoundError
+from app.middleware.authentication import UserContext
 from app.modules.system.permission.model import Permission
 from app.modules.system.permission.repository import PermissionRepository
 from app.modules.system.permission.schema import (
@@ -81,7 +83,7 @@ class PermissionService:
         return self._to_out(await self.repo.create(permission))
 
     # 更新权限：校验权限码唯一、父节点合法性（自身及其子孙不可作为父，防环）
-    async def update(self, permission_id: UUID, req: PermissionUpdate) -> PermissionOut:
+    async def update(self, permission_id: UUID, req: PermissionUpdate, operator: UserContext | None = None) -> PermissionOut:
         permission = await self.repo.get_by_id(permission_id)
         if not permission:
             raise NotFoundError("权限不存在")
@@ -98,10 +100,11 @@ class PermissionService:
         permission.parent_id = req.parent_id
         permission.description = req.description
         permission.status = req.status
+        logger.info("更新权限 permission_id={} by={}", permission_id, operator.username if operator else "system")
         return self._to_out(await self.repo.update(permission))
 
-    # 删除权限：存在子权限、被角色绑定、或为系统内置权限时拒绝删除
-    async def delete(self, permission_id: UUID) -> None:
+    # 删除权限：存在子权限、被角色绑定、或为系统内置权限时拒绝删除；返回被删权限供审计记录
+    async def delete(self, permission_id: UUID, operator: UserContext | None = None) -> Permission:
         permission = await self.repo.get_by_id(permission_id)
         if not permission:
             raise NotFoundError("权限不存在")
@@ -113,6 +116,11 @@ class PermissionService:
         if permission.roles:
             raise BizError("该权限已被角色绑定，请先解除绑定")
         await self.repo.delete(permission)
+        logger.warning(
+            "删除权限 permission_id={} code={} by={}",
+            permission_id, permission.code, operator.username if operator else "system",
+        )
+        return permission
 
     # ---- 内部工具 ----
 

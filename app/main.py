@@ -14,7 +14,9 @@ from app.common.response import ApiResponse, success
 from app.core.config import get_settings
 from app.core.database import dispose_engine
 from app.core.exceptions import register_exception_handlers
+from app.core.logging import setup_logging
 from app.core.redis import close_redis
+from app.middleware.access_log import AccessLogMiddleware
 
 # 导入所有 ORM 模型，确保它们注册到 SQLAlchemy registry（否则字符串关系如 "User" 解析不到）
 import app.models  # noqa: F401
@@ -22,6 +24,9 @@ import app.models  # noqa: F401
 from app.modules import build_api_router
 
 settings = get_settings()
+
+# 模块导入阶段初始化日志（早于 uvicorn 启动日志，统一接管输出）
+setup_logging()
 
 
 @asynccontextmanager
@@ -54,6 +59,9 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    # 访问日志（记录方法/路径/状态码/耗时/IP）
+    app.add_middleware(AccessLogMiddleware)
 
     # 全局异常处理（统一输出 ApiResponse 结构）
     register_exception_handlers(app)

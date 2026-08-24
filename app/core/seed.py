@@ -15,6 +15,7 @@
 
 import asyncio
 
+from loguru import logger
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -77,6 +78,14 @@ PERMISSION_TREE: list[dict] = [
                     _btn(PermissionCode.PERMISSION_CREATE, "创建权限"),
                     _btn(PermissionCode.PERMISSION_UPDATE, "更新权限"),
                     _btn(PermissionCode.PERMISSION_DELETE, "删除权限"),
+                ],
+            },
+            {
+                "name": "操作日志",
+                "code": "system:operationLog",
+                "type": 2,
+                "children": [
+                    _btn(PermissionCode.OPERATION_LOG_LIST, "操作日志列表"),
                 ],
             },
         ],
@@ -200,6 +209,7 @@ async def seed() -> None:
             perms = await sync_permission_tree(db)
             role = await ensure_builtin_role(db, perms)
             user = await ensure_admin(db, role)
+        logger.info("初始化超管完成 username={}", user.username)
         print(
             f"Seed 完成：内置权限 {len(perms)} 个，角色「{role.name}」，"
             f"账号「{user.username}」（is_superuser={user.is_superuser}）"

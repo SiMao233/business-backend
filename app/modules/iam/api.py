@@ -13,6 +13,7 @@ from app.common.response import ApiResponse, success
 from app.core.database import get_db
 from app.core.exceptions import UnauthorizedError
 from app.core.redis import get_redis
+from app.core.security import load_public_key_pem, rsa_decrypt_password
 from app.middleware.authentication import CurrentUserDep
 from app.modules.iam.schema import LoginRequest, RefreshRequest, TokenOut, UserInfoOut
 from app.modules.iam.service import IamService
@@ -28,13 +29,21 @@ def get_service(db: DbDep, redis: RedisDep) -> IamService:
     return IamService(db, redis)
 
 
-# 登录接口：校验用户名密码并签发令牌对
+# 获取登录加密公钥：前端登录前先拉取，用公钥加密密码后提交
+@router.get("/auth/public-key", response_model=ApiResponse[str], summary="获取登录加密公钥")
+async def public_key() -> ApiResponse[str]:
+    return success(data=load_public_key_pem())
+
+
+# 登录接口：解密密码后校验用户名密码并签发令牌对
 @router.post("/auth/login", response_model=ApiResponse[TokenOut], summary="登录")
 async def login(
     req: LoginRequest,
     request: Request,
     service: Annotated[IamService, Depends(get_service)],
 ) -> ApiResponse[TokenOut]:
+    # 前端用公钥加密密码传输，此处先用私钥解密还原明文，再交给 Service 走 bcrypt 校验
+    req.password = rsa_decrypt_password(req.password)
     client_ip = request.client.host if request.client else None
     return success(data=await service.login(req, client_ip), message="登录成功")
 

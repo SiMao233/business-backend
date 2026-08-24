@@ -27,3 +27,6 @@ class PermissionCode:
     PERMISSION_CREATE = "system:permission:create"
     PERMISSION_UPDATE = "system:permission:update"
     PERMISSION_DELETE = "system:permission:delete"
+
+    # ---- 系统-操作日志 ----
+    OPERATION_LOG_LIST = "system:operationLog:list"

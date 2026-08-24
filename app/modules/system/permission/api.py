@@ -3,7 +3,7 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.common.pagination import PageResult
@@ -11,6 +11,7 @@ from app.common.response import ApiResponse, success
 from app.core.database import get_db
 from app.middleware.authentication import CurrentUserDep, get_current_user
 from app.middleware.permission import require_permissions
+from app.modules.system.operation_log.service import OperationLogService
 from app.modules.system.permission.codes import PermissionCode
 from app.modules.system.permission.schema import (
     PermissionCreate,
@@ -122,7 +123,14 @@ async def update_permission(
 )
 async def delete_permission(
     permission_id: UUID,
+    request: Request,
+    current: CurrentUserDep,
+    db: DbDep,
     service: Annotated[PermissionService, Depends(get_service)],
 ) -> ApiResponse[None]:
-    await service.delete(permission_id)
+    deleted = await service.delete(permission_id, current)
+    await OperationLogService(db).record(
+        user=current, module="permission", action="delete", target_id=permission_id,
+        detail={"code": deleted.code, "name": deleted.name}, request=request,
+    )
     return success(message="删除成功")

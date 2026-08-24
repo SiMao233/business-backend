@@ -1,0 +1,30 @@
+# Promtail 配置：采集 Docker 容器日志并推送到 Loki
+# 通过 Docker Socket 自动发现容器，按容器名打标签，便于在 Grafana 中过滤
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  # 记录各文件读取进度，重启后不重复采集
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  - job_name: docker
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 5s
+    relabel_configs:
+      # 容器名 -> container 标签（去掉开头的 /）
+      - source_labels: ['__meta_docker_container_name']
+        regex: '/(.*)'
+        target_label: 'container'
+      # 输出流（stdout/stderr）-> stream 标签
+      - source_labels: ['__meta_docker_container_log_stream']
+        target_label: 'stream'
+      # 仅采集业务相关容器，避免把日志平台自身的日志也收进来
+      - source_labels: ['__meta_docker_container_name']
+        regex: '/(business-backend-app|business-backend-mysql|business-backend-redis)'
+        action: keep

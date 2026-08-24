@@ -1,6 +1,7 @@
-# 本地开发基础设施编排：MySQL 8 + Redis 7 + 应用
+# 本地开发基础设施编排：MySQL 8 + Redis 7 + 应用 + 日志栈(Loki/Promtail/Grafana)
 # 用法：cp .env.example .env 后执行 `docker compose up -d`
 # 仅启动基础设施：`docker compose up -d mysql redis`
+# 仅启动日志栈：`docker compose up -d loki promtail grafana`
 
 services:
   mysql:
@@ -55,7 +56,54 @@ services:
       redis:
         condition: service_healthy
 
+  # ---- 日志栈：Loki 存储 + Promtail 采集 + Grafana 可视化 ----
+  loki:
+    image: grafana/loki:3.0.0
+    container_name: business-backend-loki
+    restart: unless-stopped
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - loki_data:/loki
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3100/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  promtail:
+    image: grafana/promtail:3.0.0
+    container_name: business-backend-promtail
+    restart: unless-stopped
+    volumes:
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./docker/promtail-config.yml:/etc/promtail/config.yml:ro
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      loki:
+        condition: service_healthy
+
+  grafana:
+    image: grafana/grafana:11.0.0
+    container_name: business-backend-grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      # 首次登录账号 admin，密码见下；生产环境务必通过 .env 覆盖
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+    volumes:
+      - grafana_data:/var/lib/grafana
+      # 自动注册 Loki 数据源，免去手动配置
+      - ./docker/grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      - loki
+
 volumes:
   mysql_data:
   redis_data:
   file_storage:
+  loki_data:
+  grafana_data:
