@@ -11,7 +11,7 @@ class LoginRequest(ApiInModel):
     """登录入参。"""
 
     username: str = Field(min_length=1, max_length=50, description="登录账号")
-    password: str = Field(min_length=1, max_length=128, description="密码")
+    password: str = Field(min_length=1, max_length=512, description="密码")
 
 
 class RefreshRequest(ApiInModel):

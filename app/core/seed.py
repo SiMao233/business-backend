@@ -23,7 +23,10 @@ from sqlalchemy.orm import selectinload
 from app.core.config import get_settings
 from app.core.database import AsyncSessionLocal, dispose_engine
 from app.core.security import hash_password
-from app.models import Permission, Role, User
+from app.models import ModelProvider, Permission, Role, User
+from app.modules.agent.codes import PermissionCode as AgentPermissionCode
+from app.modules.model.codes import PermissionCode as ModelPermissionCode
+from app.modules.organization.codes import PermissionCode as OrganizationPermissionCode
 from app.modules.system.permission.codes import PermissionCode
 
 # 内置角色与初始超管
@@ -31,6 +34,13 @@ BUILTIN_ROLE_CODE = "admin"
 BUILTIN_ROLE_NAME = "超级管理员"
 ADMIN_USERNAME = "admin"
 ADMIN_NICKNAME = "超级管理员"
+
+# 内置模型供应商（占位，api_key 由运营在管理界面配置；is_builtin 禁止删除/禁用）
+BUILTIN_PROVIDERS: list[dict] = [
+    {"name": "OpenAI", "code": "openai", "base_url": None},
+    {"name": "DeepSeek", "code": "deepseek", "base_url": None},
+    {"name": "通义千问", "code": "qwen", "base_url": None},
+]
 
 
 def _btn(code: str, name: str) -> dict:
@@ -86,6 +96,74 @@ PERMISSION_TREE: list[dict] = [
                 "type": 2,
                 "children": [
                     _btn(PermissionCode.OPERATION_LOG_LIST, "操作日志列表"),
+                ],
+            },
+        ],
+    },
+    {
+        "name": "模型管理",
+        "code": "model",
+        "type": 1,
+        "children": [
+            {
+                "name": "模型供应商",
+                "code": "model:provider",
+                "type": 2,
+                "children": [
+                    _btn(ModelPermissionCode.MODEL_PROVIDER_LIST, "供应商列表"),
+                    _btn(ModelPermissionCode.MODEL_PROVIDER_CREATE, "创建供应商"),
+                    _btn(ModelPermissionCode.MODEL_PROVIDER_UPDATE, "更新供应商"),
+                    _btn(ModelPermissionCode.MODEL_PROVIDER_DELETE, "删除供应商"),
+                ],
+            },
+            {
+                "name": "模型实例",
+                "code": "model:instance",
+                "type": 2,
+                "children": [
+                    _btn(ModelPermissionCode.MODEL_INSTANCE_LIST, "实例列表"),
+                    _btn(ModelPermissionCode.MODEL_INSTANCE_CREATE, "创建实例"),
+                    _btn(ModelPermissionCode.MODEL_INSTANCE_UPDATE, "更新实例"),
+                    _btn(ModelPermissionCode.MODEL_INSTANCE_DELETE, "删除实例"),
+                ],
+            },
+        ],
+    },
+    {
+        "name": "组织管理",
+        "code": "organization",
+        "type": 1,
+        "children": [
+            {
+                "name": "组织管理",
+                "code": "organization:organization",
+                "type": 2,
+                "children": [
+                    _btn(OrganizationPermissionCode.ORGANIZATION_LIST, "组织列表"),
+                    _btn(OrganizationPermissionCode.ORGANIZATION_CREATE, "创建组织"),
+                    _btn(OrganizationPermissionCode.ORGANIZATION_UPDATE, "更新组织"),
+                    _btn(OrganizationPermissionCode.ORGANIZATION_DELETE, "删除组织"),
+                ],
+            },
+        ],
+    },
+    {
+        "name": "Agent 管理",
+        "code": "agent",
+        "type": 1,
+        "children": [
+            {
+                "name": "Agent 管理",
+                "code": "agent:agent",
+                "type": 2,
+                "children": [
+                    _btn(AgentPermissionCode.AGENT_LIST, "Agent 列表"),
+                    _btn(AgentPermissionCode.AGENT_CREATE, "创建 Agent"),
+                    _btn(AgentPermissionCode.AGENT_UPDATE, "更新 Agent"),
+                    _btn(AgentPermissionCode.AGENT_DELETE, "删除 Agent"),
+                    _btn(AgentPermissionCode.AGENT_PUBLISH, "发布 Agent"),
+                    _btn(AgentPermissionCode.AGENT_RUN, "触发运行"),
+                    _btn(AgentPermissionCode.AGENT_VERSION_LIST, "版本列表"),
                 ],
             },
         ],
@@ -202,6 +280,39 @@ async def ensure_admin(db: AsyncSession, role: Role) -> User:
     return user
 
 
+async def ensure_builtin_providers(db: AsyncSession) -> list[ModelProvider]:
+    """确保内置模型供应商存在（幂等）。
+
+    仅创建缺失的供应商并标记 ``is_builtin=True``；已存在则同步名称，
+    尊重运营对 api_key / status 的后续调整。
+    """
+    existing = {p.code: p for p in (await db.execute(select(ModelProvider))).scalars()}
+    providers: list[ModelProvider] = []
+    created: list[str] = []
+    for item in BUILTIN_PROVIDERS:
+        provider = existing.get(item["code"])
+        if provider is None:
+            provider = ModelProvider(
+                name=item["name"],
+                code=item["code"],
+                base_url=item.get("base_url"),
+                status=1,
+                is_builtin=True,
+            )
+            db.add(provider)
+            await db.flush()
+            created.append(item["code"])
+        else:
+            provider.is_builtin = True  # 历史数据兜底标记
+            provider.name = item["name"]
+        providers.append(provider)
+    if created:
+        print(f"  新增内置模型供应商 {len(created)} 个：{', '.join(created)}")
+    else:
+        print("  内置模型供应商已齐全，无需新增")
+    return providers
+
+
 async def seed() -> None:
     """执行完整初始化（幂等）。"""
     async with AsyncSessionLocal() as db:
@@ -209,10 +320,12 @@ async def seed() -> None:
             perms = await sync_permission_tree(db)
             role = await ensure_builtin_role(db, perms)
             user = await ensure_admin(db, role)
+            providers = await ensure_builtin_providers(db)
         logger.info("初始化超管完成 username={}", user.username)
         print(
             f"Seed 完成：内置权限 {len(perms)} 个，角色「{role.name}」，"
-            f"账号「{user.username}」（is_superuser={user.is_superuser}）"
+            f"账号「{user.username}」（is_superuser={user.is_superuser}），"
+            f"内置模型供应商 {len(providers)} 个"
         )
 
 

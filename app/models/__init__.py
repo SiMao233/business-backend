@@ -1,9 +1,17 @@
 # 用户
 # 文件
+# Agent 管理
+from app.modules.agent.model import Agent, AgentVersion
 from app.modules.file.model import SysFile
 
 # 关联表
 from app.modules.iam.model import RolePermission, UserRole
+
+# 模型管理
+from app.modules.model.model import ModelInstance, ModelProvider
+
+# 组织管理
+from app.modules.organization.model import Organization
 
 # 权限
 from app.modules.system.permission.model import Permission
@@ -19,4 +27,9 @@ __all__ = [
     "UserRole",
     "RolePermission",
     "SysFile",
+    "ModelProvider",
+    "ModelInstance",
+    "Organization",
+    "Agent",
+    "AgentVersion",
 ]

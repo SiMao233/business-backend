@@ -29,3 +29,19 @@ class FileBizType(BaseEnum):
     AVATAR = "avatar"                        # 用户头像
     AGENT_ATTACHMENT = "agent_attachment"    # Agent 附件 / 图标
     ATTACHMENT = "attachment"                # 通用附件
+
+
+class ModelType(BaseEnum):
+    """模型实例类型。"""
+
+    CHAT = "chat"           # 对话 / 文本生成
+    EMBEDDING = "embedding" # 向量化
+    IMAGE = "image"         # 图像生成
+    AUDIO = "audio"         # 语音
+
+
+class AgentVersionStatus(BaseEnum):
+    """Agent 版本状态。"""
+
+    DRAFT = "draft"         # 草稿（未发布）
+    PUBLISHED = "published" # 已发布（不可修改）
