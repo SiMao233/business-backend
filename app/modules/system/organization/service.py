@@ -6,9 +6,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.common.pagination import PageParams, PageResult
 from app.core.exceptions import BizError, NotFoundError
-from app.modules.organization.model import Organization
-from app.modules.organization.repository import OrganizationRepository
-from app.modules.organization.schema import (
+from app.modules.system.organization.model import Organization
+from app.modules.system.organization.repository import OrganizationRepository
+from app.modules.system.organization.schema import (
     OrganizationCreate,
     OrganizationNode,
     OrganizationOut,

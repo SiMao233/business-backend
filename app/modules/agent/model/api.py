@@ -15,8 +15,8 @@ from app.common.response import ApiResponse, success
 from app.core.database import get_db
 from app.middleware.authentication import get_current_user
 from app.middleware.permission import require_permissions
-from app.modules.model.codes import PermissionCode
-from app.modules.model.schema import (
+from app.modules.agent.model.codes import PermissionCode
+from app.modules.agent.model.schema import (
     ModelInstanceCreate,
     ModelInstanceOption,
     ModelInstanceOut,
@@ -27,9 +27,9 @@ from app.modules.model.schema import (
     ModelProviderQuery,
     ModelProviderUpdate,
 )
-from app.modules.model.service import ModelService
+from app.modules.agent.model.service import ModelService
 
-router = APIRouter(prefix="/model", tags=["模型管理"], dependencies=[Depends(get_current_user)])
+router = APIRouter(prefix="/model", tags=["Agent-模型管理"], dependencies=[Depends(get_current_user)])
 
 DbDep = Annotated[AsyncSession, Depends(get_db)]
 

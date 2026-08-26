@@ -9,7 +9,7 @@ from sqlalchemy.orm import selectinload
 
 from app.common.pagination import PageParams, PageResult, paginate
 from app.common.repository import BaseRepository
-from app.modules.model.model import ModelInstance, ModelProvider
+from app.modules.agent.model.model import ModelInstance, ModelProvider
 
 
 class ModelProviderRepository(BaseRepository):

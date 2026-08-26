@@ -4,8 +4,9 @@
     python -m app.core.seed
 
 在（空）数据库上初始化系统基础数据：
-1. 内置权限树：目录「系统管理」→ 菜单「用户/角色/权限管理」→ 按钮（权限码，来自
-   ``app.modules.system.permission.codes.PermissionCode``），全部标记 ``is_builtin=True``；
+1. 内置权限树：目录「系统管理」（含用户/角色/权限/操作日志/组织管理）与
+   「Agent 管理」（含 Agent/模型管理）→ 菜单 → 按钮（权限码，来自各模块
+   ``codes.PermissionCode``），全部标记 ``is_builtin=True``；
 2. 内置角色「超级管理员」（``code=admin``，``is_builtin=True``），绑定全部内置权限；
 3. 初始超管账号 ``admin``（``is_superuser=True``），绑定内置角色，初始密码取配置
    ``app_admin_password``（可用环境变量 ``APP_ADMIN_PASSWORD`` 覆盖）。
@@ -24,9 +25,9 @@ from app.core.config import get_settings
 from app.core.database import AsyncSessionLocal, dispose_engine
 from app.core.security import hash_password
 from app.models import ModelProvider, Permission, Role, User
-from app.modules.agent.codes import PermissionCode as AgentPermissionCode
-from app.modules.model.codes import PermissionCode as ModelPermissionCode
-from app.modules.organization.codes import PermissionCode as OrganizationPermissionCode
+from app.modules.agent.management.codes import PermissionCode as AgentPermissionCode
+from app.modules.agent.model.codes import PermissionCode as ModelPermissionCode
+from app.modules.system.organization.codes import PermissionCode as OrganizationPermissionCode
 from app.modules.system.permission.codes import PermissionCode
 
 # 内置角色与初始超管
@@ -98,51 +99,22 @@ PERMISSION_TREE: list[dict] = [
                     _btn(PermissionCode.OPERATION_LOG_LIST, "操作日志列表"),
                 ],
             },
-        ],
-    },
-    {
-        "name": "模型管理",
-        "code": "model",
-        "type": 1,
-        "children": [
-            {
-                "name": "模型供应商",
-                "code": "model:provider",
-                "type": 2,
-                "children": [
-                    _btn(ModelPermissionCode.MODEL_PROVIDER_LIST, "供应商列表"),
-                    _btn(ModelPermissionCode.MODEL_PROVIDER_CREATE, "创建供应商"),
-                    _btn(ModelPermissionCode.MODEL_PROVIDER_UPDATE, "更新供应商"),
-                    _btn(ModelPermissionCode.MODEL_PROVIDER_DELETE, "删除供应商"),
-                ],
-            },
-            {
-                "name": "模型实例",
-                "code": "model:instance",
-                "type": 2,
-                "children": [
-                    _btn(ModelPermissionCode.MODEL_INSTANCE_LIST, "实例列表"),
-                    _btn(ModelPermissionCode.MODEL_INSTANCE_CREATE, "创建实例"),
-                    _btn(ModelPermissionCode.MODEL_INSTANCE_UPDATE, "更新实例"),
-                    _btn(ModelPermissionCode.MODEL_INSTANCE_DELETE, "删除实例"),
-                ],
-            },
-        ],
-    },
-    {
-        "name": "组织管理",
-        "code": "organization",
-        "type": 1,
-        "children": [
             {
                 "name": "组织管理",
-                "code": "organization:organization",
-                "type": 2,
+                "code": "organization",
+                "type": 1,
                 "children": [
-                    _btn(OrganizationPermissionCode.ORGANIZATION_LIST, "组织列表"),
-                    _btn(OrganizationPermissionCode.ORGANIZATION_CREATE, "创建组织"),
-                    _btn(OrganizationPermissionCode.ORGANIZATION_UPDATE, "更新组织"),
-                    _btn(OrganizationPermissionCode.ORGANIZATION_DELETE, "删除组织"),
+                    {
+                        "name": "组织管理",
+                        "code": "organization:organization",
+                        "type": 2,
+                        "children": [
+                            _btn(OrganizationPermissionCode.ORGANIZATION_LIST, "组织列表"),
+                            _btn(OrganizationPermissionCode.ORGANIZATION_CREATE, "创建组织"),
+                            _btn(OrganizationPermissionCode.ORGANIZATION_UPDATE, "更新组织"),
+                            _btn(OrganizationPermissionCode.ORGANIZATION_DELETE, "删除组织"),
+                        ],
+                    },
                 ],
             },
         ],
@@ -164,6 +136,35 @@ PERMISSION_TREE: list[dict] = [
                     _btn(AgentPermissionCode.AGENT_PUBLISH, "发布 Agent"),
                     _btn(AgentPermissionCode.AGENT_RUN, "触发运行"),
                     _btn(AgentPermissionCode.AGENT_VERSION_LIST, "版本列表"),
+                ],
+            },
+            {
+                "name": "模型管理",
+                "code": "model",
+                "type": 1,
+                "children": [
+                    {
+                        "name": "模型供应商",
+                        "code": "model:provider",
+                        "type": 2,
+                        "children": [
+                            _btn(ModelPermissionCode.MODEL_PROVIDER_LIST, "供应商列表"),
+                            _btn(ModelPermissionCode.MODEL_PROVIDER_CREATE, "创建供应商"),
+                            _btn(ModelPermissionCode.MODEL_PROVIDER_UPDATE, "更新供应商"),
+                            _btn(ModelPermissionCode.MODEL_PROVIDER_DELETE, "删除供应商"),
+                        ],
+                    },
+                    {
+                        "name": "模型实例",
+                        "code": "model:instance",
+                        "type": 2,
+                        "children": [
+                            _btn(ModelPermissionCode.MODEL_INSTANCE_LIST, "实例列表"),
+                            _btn(ModelPermissionCode.MODEL_INSTANCE_CREATE, "创建实例"),
+                            _btn(ModelPermissionCode.MODEL_INSTANCE_UPDATE, "更新实例"),
+                            _btn(ModelPermissionCode.MODEL_INSTANCE_DELETE, "删除实例"),
+                        ],
+                    },
                 ],
             },
         ],

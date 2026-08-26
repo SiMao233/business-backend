@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.common.pagination import PageParams, PageResult, paginate
 from app.common.repository import BaseRepository
-from app.modules.agent.model import Agent, AgentVersion
+from app.modules.agent.management.model import Agent, AgentVersion
 
 
 class AgentRepository(BaseRepository):

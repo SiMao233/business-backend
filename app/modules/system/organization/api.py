@@ -15,17 +15,17 @@ from app.common.response import ApiResponse, success
 from app.core.database import get_db
 from app.middleware.authentication import get_current_user
 from app.middleware.permission import require_permissions
-from app.modules.organization.codes import PermissionCode
-from app.modules.organization.schema import (
+from app.modules.system.organization.codes import PermissionCode
+from app.modules.system.organization.schema import (
     OrganizationCreate,
     OrganizationNode,
     OrganizationOut,
     OrganizationQuery,
     OrganizationUpdate,
 )
-from app.modules.organization.service import OrganizationService
+from app.modules.system.organization.service import OrganizationService
 
-router = APIRouter(prefix="/organization", tags=["组织管理"], dependencies=[Depends(get_current_user)])
+router = APIRouter(prefix="/organization", tags=["系统-组织管理"], dependencies=[Depends(get_current_user)])
 
 DbDep = Annotated[AsyncSession, Depends(get_db)]
 

@@ -4,8 +4,9 @@
 """
 
 from app.modules.system.operation_log.model import OperationLog
+from app.modules.system.organization.model import Organization
 from app.modules.system.permission.model import Permission
 from app.modules.system.role.model import Role
 from app.modules.system.user.model import User
 
-__all__ = ["User", "Role", "Permission", "OperationLog"]
+__all__ = ["User", "Role", "Permission", "OperationLog", "Organization"]

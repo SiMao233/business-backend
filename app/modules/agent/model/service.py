@@ -6,9 +6,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.common.pagination import PageParams, PageResult
 from app.core.exceptions import BizError, NotFoundError
-from app.modules.model.model import ModelInstance, ModelProvider
-from app.modules.model.repository import ModelInstanceRepository, ModelProviderRepository
-from app.modules.model.schema import (
+from app.modules.agent.model.model import ModelInstance, ModelProvider
+from app.modules.agent.model.repository import ModelInstanceRepository, ModelProviderRepository
+from app.modules.agent.model.schema import (
     ModelInstanceCreate,
     ModelInstanceOption,
     ModelInstanceOut,
