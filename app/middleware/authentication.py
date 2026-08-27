@@ -12,6 +12,7 @@ from uuid import UUID
 
 import jwt
 from fastapi import Depends, Request
+from loguru import logger
 from redis.asyncio import Redis
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
@@ -73,12 +74,21 @@ async def get_current_user(
     if payload.get("token_type") != "access":
         raise UnauthorizedError("令牌类型错误")
     jti = payload["jti"]
-    if await redis.get(f"{ACCESS_BLACKLIST_PREFIX}:{jti}"):
-        raise UnauthorizedError("认证令牌已失效")
-    # 版本号校验：改密码/禁用账号/重新登录后，该用户旧令牌全部失效
-    current_ver = await redis.get(f"{TOKEN_VERSION_PREFIX}:{UUID(payload['sub']).hex}")
-    if payload.get("ver", 0) != (int(current_ver) if current_ver else 0):
-        raise UnauthorizedError("认证令牌已失效")
+    try:
+        if await redis.get(f"{ACCESS_BLACKLIST_PREFIX}:{jti}"):
+            raise UnauthorizedError("认证令牌已失效")
+        # 版本号校验：改密码/禁用账号/重新登录后，该用户旧令牌全部失效
+        current_ver = await redis.get(f"{TOKEN_VERSION_PREFIX}:{UUID(payload['sub']).hex}")
+        if payload.get("ver", 0) != (int(current_ver) if current_ver else 0):
+            raise UnauthorizedError("认证令牌已失效")
+    except UnauthorizedError:
+        # 业务校验失败（Redis 正常且令牌确实失效）必须继续抛出，不能降级
+        raise
+    except Exception:
+        # 降级放行：Redis 不可用（超时/连接失败）时跳过黑名单/版本号校验，
+        # 仅依赖 JWT 签名与过期校验，避免远程 Redis 抖动导致所有接口卡顿/不可用。
+        # 注意：此期间登出拉黑、改密/禁用后旧令牌失效等能力暂时失效（安全窗口）。
+        logger.warning("Redis 不可用，认证降级放行（跳过黑名单/版本号校验）")
     user_ctx = UserContext(
         user_id=UUID(payload["sub"]),
         username=payload.get("username"),  # 旧令牌可能无该字段，取不到则为 None

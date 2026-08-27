@@ -8,9 +8,18 @@ from app.core.config import Settings, get_settings
 
 
 def create_redis_client(settings: Settings | None = None) -> Redis:
-    """根据配置创建 Redis 异步客户端。"""
+    """根据配置创建 Redis 异步客户端。
+
+    显式设置连接/命令超时：远程 Redis 不稳定时快速失败，避免请求无限挂起。
+    """
     settings = settings or get_settings()
-    return Redis.from_url(settings.redis_url, encoding="utf-8", decode_responses=True)
+    return Redis.from_url(
+        settings.redis_url,
+        encoding="utf-8",
+        decode_responses=True,
+        socket_connect_timeout=settings.redis_socket_connect_timeout,
+        socket_timeout=settings.redis_socket_timeout,
+    )
 
 
 # 全局 Redis 客户端（连接池由应用 lifespan 负责关闭）

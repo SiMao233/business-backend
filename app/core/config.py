@@ -52,6 +52,9 @@ class Settings(BaseSettings):
     redis_port: int = 6379
     redis_db: int = 0
     redis_password: str | None = None
+    # Redis 命令/连接超时（秒）：远程 Redis 不稳定时快速失败，避免请求无限挂起
+    redis_socket_timeout: float = 2.0
+    redis_socket_connect_timeout: float = 2.0
 
     # ---- JWT / 安全 ----
     # 生产环境务必在 .env 中设置强随机密钥，切勿使用默认值
