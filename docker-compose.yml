@@ -1,41 +1,10 @@
-# 本地开发基础设施编排：MySQL 8 + Redis 7 + 应用 + 日志栈(Loki/Promtail/Grafana)
+# 生产编排：应用 + 日志栈(Loki/Promtail/Grafana)
+# MySQL / Redis 复用宿主机已安装实例（方案 A），通过 host.docker.internal 连接
 # 用法：cp .env.example .env 后执行 `docker compose up -d`
-# 仅启动基础设施：`docker compose up -d mysql redis`
+# 仅启动应用：`docker compose up -d app`
 # 仅启动日志栈：`docker compose up -d loki promtail grafana`
 
 services:
-  mysql:
-    image: mysql:8.0
-    container_name: business-backend-mysql
-    restart: unless-stopped
-    environment:
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-password}
-      MYSQL_DATABASE: ${DB_NAME:-business_backend}
-      TZ: ${APP_TIMEZONE:-Asia/Shanghai}
-    ports:
-      - "3306:3306"
-    volumes:
-      - mysql_data:/var/lib/mysql
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_PASSWORD:-password}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  redis:
-    image: redis:7-alpine
-    container_name: business-backend-redis
-    restart: unless-stopped
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   app:
     build:
       context: .
@@ -43,18 +12,17 @@ services:
     container_name: business-backend-app
     restart: unless-stopped
     env_file: .env
+    extra_hosts:
+      # Linux 上 host.docker.internal 需显式映射到宿主机网关（Docker 20.10+）
+      - "host.docker.internal:host-gateway"
     environment:
-      DB_HOST: mysql
-      REDIS_HOST: redis
+      # 复用宿主机已安装的 MySQL / Redis
+      DB_HOST: host.docker.internal
+      REDIS_HOST: host.docker.internal
     ports:
       - "8000:8000"
     volumes:
       - file_storage:/app/storage
-    depends_on:
-      mysql:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
 
   # ---- 日志栈：Loki 存储 + Promtail 采集 + Grafana 可视化 ----
   loki:
@@ -102,8 +70,6 @@ services:
       - loki
 
 volumes:
-  mysql_data:
-  redis_data:
   file_storage:
   loki_data:
   grafana_data:

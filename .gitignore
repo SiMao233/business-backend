@@ -32,6 +32,9 @@ MDDoc/
 .env.*
 !.env.example
 
+# ---- RSA 密钥对（登录密码解密，勿提交） ----
+keys/
+
 # ---- 日志 / 运行时产物 ----
 logs/
 *.log
