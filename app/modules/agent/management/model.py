@@ -6,7 +6,7 @@ Agent 配置管理：Agent（sys_agent）定义 + AgentVersion（sys_agent_versi
 
 from uuid import UUID, uuid4
 
-from sqlalchemy import JSON, ForeignKey, Integer, SmallInteger, String, Uuid
+from sqlalchemy import JSON, ForeignKey, Integer, String, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base, TimestampMixin
@@ -45,8 +45,8 @@ class Agent(TimestampMixin, Base):
     # 核心配置（JSON：system_prompt / temperature / tools 等，结构见 AgentConfig）
     config: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
 
-    # 状态：1 启用 / 0 禁用
-    status: Mapped[int] = mapped_column(SmallInteger, default=1, nullable=False)
+    # 生命周期状态（AgentStatus：draft / running / paused / stopped）
+    status: Mapped[str] = mapped_column(String(16), default="draft", nullable=False)
 
     # 当前发布版本号（0=未发布）
     current_version: Mapped[int] = mapped_column(Integer, default=0, nullable=False)

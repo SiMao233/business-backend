@@ -2,10 +2,12 @@
 
 from uuid import UUID
 
+from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.common.pagination import PageParams, PageResult
 from app.core.exceptions import BizError, NotFoundError
+from app.middleware.authentication import UserContext
 from app.modules.system.organization.model import Organization
 from app.modules.system.organization.repository import OrganizationRepository
 from app.modules.system.organization.schema import (
@@ -59,10 +61,16 @@ class OrganizationService:
             owner_id=req.owner_id,
             status=req.status,
         )
-        return OrganizationOut.model_validate(await self.repo.create(org))
+        created = await self.repo.create(org)
+        logger.info(
+            "创建组织 org_id={} code={} name={}", created.id, created.code, created.name
+        )
+        return OrganizationOut.model_validate(created)
 
     # 更新组织：校验上级组织不能是自身
-    async def update(self, org_id: UUID, req: OrganizationUpdate) -> OrganizationOut:
+    async def update(
+        self, org_id: UUID, req: OrganizationUpdate, operator: UserContext | None = None
+    ) -> OrganizationOut:
         org = await self.repo.get_by_id(org_id)
         if not org:
             raise NotFoundError("组织不存在")
@@ -78,14 +86,24 @@ class OrganizationService:
             org.owner_id = req.owner_id
         if req.status is not None:
             org.status = req.status
-        return OrganizationOut.model_validate(await self.repo.update(org))
+        updated = await self.repo.update(org)
+        logger.info(
+            "更新组织 org_id={} code={} by={}",
+            org_id, org.code, operator.username if operator else "system",
+        )
+        return OrganizationOut.model_validate(updated)
 
     # 删除组织
-    async def delete(self, org_id: UUID) -> None:
+    async def delete(self, org_id: UUID, operator: UserContext | None = None) -> None:
         org = await self.repo.get_by_id(org_id)
         if not org:
             raise NotFoundError("组织不存在")
         await self.repo.delete(org)
+        logger.warning(
+            "删除组织 org_id={} code={} name={} by={}",
+            org_id, org.code, org.name, operator.username if operator else "system",
+        )
+
 
     # 组织树：全量加载后内存组装（不依赖 ORM children 自动填充，避免重复）
     async def tree(self) -> list[OrganizationNode]:
@@ -100,6 +118,8 @@ class OrganizationService:
                 description=org.description,
                 owner_id=org.owner_id,
                 status=org.status,
+                create_time=org.create_time,
+                update_time=org.update_time
             )
         roots: list[OrganizationNode] = []
         for org in orgs:

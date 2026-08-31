@@ -89,6 +89,18 @@ class Settings(BaseSettings):
     # 可选：对外公开访问的基础 URL（如 CDN / 网关前缀），为空则返回相对下载路径
     file_public_base_url: str = ""
 
+    # ---- AI 能力（内嵌模块 app/modules/ai/）----
+    # 注意：真实模型 API Key 由模型供应商（sys_model_provider.api_key）配置，
+    # 此处仅放非敏感占位默认值；生产环境通过 .env 覆盖。
+    # 默认模型标识（Agent 未绑定模型实例时的兜底；为空则要求 Agent 必须绑定）
+    ai_default_model: str = ""
+    # 单次 LLM 调用超时（秒）
+    ai_request_timeout: float = 60.0
+    # 失败重试次数
+    ai_max_retries: int = 2
+    # 对话最大历史轮数（保留最近 N 轮，用于上下文组装）
+    ai_max_history_rounds: int = 10
+
     # ---- 日志 ----
     log_level: str = "INFO"
 

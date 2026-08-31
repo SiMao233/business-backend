@@ -62,6 +62,8 @@ class OrganizationNode(ApiOutModel):
     owner_id: UUID | None = None
     status: int
     children: list["OrganizationNode"] = Field(default_factory=list, description="子组织")
+    create_time: UtcDateTime
+    update_time: UtcDateTime
 
     @field_serializer("id", "parent_id", "owner_id")
     def serialize_id(self, value: UUID | None) -> str | None:

@@ -19,6 +19,8 @@ def create_redis_client(settings: Settings | None = None) -> Redis:
         decode_responses=True,
         socket_connect_timeout=settings.redis_socket_connect_timeout,
         socket_timeout=settings.redis_socket_timeout,
+        health_check_interval=30,   # 核心：空闲 30s 后下次使用前先 PING 检测
+        socket_keepalive=True,      # 减少连接被静默断开
     )
 
 

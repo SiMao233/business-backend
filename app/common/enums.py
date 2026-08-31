@@ -40,6 +40,21 @@ class ModelType(BaseEnum):
     AUDIO = "audio"         # 语音
 
 
+class AgentStatus(BaseEnum):
+    """Agent 生命周期状态。
+
+    - draft：草稿，可编辑、不可运行（current_version>0 时线上继续跑旧版本）
+    - running：运行中，可运行、不可编辑
+    - paused：暂停，不可运行、可恢复
+    - stopped：停止，不可运行
+    """
+
+    DRAFT = "draft"         # 草稿（可编辑）
+    RUNNING = "running"     # 运行中（可运行）
+    PAUSED = "paused"       # 暂停（可恢复）
+    STOPPED = "stopped"     # 停止
+
+
 class AgentVersionStatus(BaseEnum):
     """Agent 版本状态。"""
 

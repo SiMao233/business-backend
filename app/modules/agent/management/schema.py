@@ -4,6 +4,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_serializer
 
+from app.common.enums import AgentStatus
 from app.common.schema import ApiInModel, ApiOutModel, UtcDateTime
 
 
@@ -19,7 +20,7 @@ class AgentConfig(BaseModel):
 
 
 class AgentCreate(ApiInModel):
-    """创建 Agent 入参。"""
+    """创建 Agent 入参（新建即草稿，状态由生命周期动作管理）。"""
 
     name: str = Field(min_length=1, max_length=255, description="Agent 名称")
     code: str = Field(min_length=1, max_length=64, description="业务编码")
@@ -28,11 +29,10 @@ class AgentCreate(ApiInModel):
     model_id: UUID | None = Field(default=None, description="绑定模型实例 ID")
     organization_id: UUID | None = Field(default=None, description="归属组织 ID")
     config: AgentConfig = Field(default_factory=AgentConfig, description="核心配置")
-    status: int = Field(default=1, ge=0, le=1, description="1启用 0禁用")
 
 
 class AgentUpdate(ApiInModel):
-    """更新 Agent 入参（code 不可改）。"""
+    """更新 Agent 入参（code 不可改；配置仅草稿可改，状态可直接切换）。"""
 
     name: str | None = Field(default=None, min_length=1, max_length=255, description="Agent 名称")
     description: str | None = Field(default=None, max_length=512, description="描述")
@@ -40,7 +40,9 @@ class AgentUpdate(ApiInModel):
     model_id: UUID | None = Field(default=None, description="绑定模型实例 ID")
     organization_id: UUID | None = Field(default=None, description="归属组织 ID")
     config: AgentConfig | None = Field(default=None, description="核心配置")
-    status: int | None = Field(default=None, ge=0, le=1, description="1启用 0禁用")
+    status: AgentStatus | None = Field(
+        default=None, description="状态切换（draft/running/paused/stopped）"
+    )
 
 
 class AgentOut(ApiOutModel):
@@ -56,7 +58,7 @@ class AgentOut(ApiOutModel):
     model_id: UUID | None = None
     organization_id: UUID | None = None
     config: AgentConfig
-    status: int
+    status: AgentStatus
     current_version: int
     creator_id: UUID | None = None
     create_time: UtcDateTime
@@ -74,7 +76,7 @@ class AgentQuery(ApiInModel):
     page: int = Field(default=1, ge=1, description="页码（从 1 开始）")
     pageSize: int = Field(default=20, ge=10, le=100, description="每页条数")
     keyword: str | None = Field(default=None, max_length=64, description="关键字：名称/编码模糊匹配")
-    status: int | None = Field(default=None, ge=0, le=1, description="状态筛选")
+    status: AgentStatus | None = Field(default=None, description="状态筛选")
     organization_id: UUID | None = Field(default=None, description="按组织筛选")
 
 
@@ -82,6 +84,12 @@ class AgentPublish(ApiInModel):
     """发布 Agent 入参。"""
 
     changelog: str | None = Field(default=None, max_length=512, description="发布说明")
+
+
+class AgentVersionSwitch(ApiInModel):
+    """切换 Agent 版本入参（回滚到历史版本）。"""
+
+    version: int = Field(ge=1, description="目标版本号")
 
 
 class AgentVersionOut(ApiOutModel):
@@ -111,7 +119,9 @@ class AgentRunRequest(ApiInModel):
 
 
 class AgentRunOut(ApiOutModel):
-    """触发运行回执（本版不建 run 记录表，仅返回受理状态）。"""
+    """触发运行回执（本版不建 run 记录表，同步返回对话结果）。"""
 
-    run_id: str = Field(default="", description="运行 ID（ai-service 生成）")
-    status: str = Field(default="running", description="运行状态")
+    run_id: str = Field(default="", description="运行 ID（预留，异步时返回）")
+    status: str = Field(default="success", description="运行状态")
+    reply: str = Field(default="", description="模型回复内容")
+    model: str = Field(default="", description="实际使用的模型标识")

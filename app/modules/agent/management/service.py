@@ -4,6 +4,7 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.common.enums import AgentStatus
 from app.common.pagination import PageParams, PageResult
 from app.core.exceptions import BizError, NotFoundError
 from app.modules.agent.management.model import Agent, AgentVersion
@@ -17,6 +18,7 @@ from app.modules.agent.management.schema import (
     AgentRunRequest,
     AgentUpdate,
     AgentVersionOut,
+    AgentVersionSwitch,
 )
 
 
@@ -24,6 +26,7 @@ class AgentService:
     """Agent 管理服务（配置 + 版本 + 触发运行）。"""
 
     def __init__(self, db: AsyncSession) -> None:
+        self.db = db
         self.repo = AgentRepository(db)
         self.version_repo = AgentVersionRepository(db)
 
@@ -62,17 +65,32 @@ class AgentService:
             model_id=req.model_id,
             organization_id=req.organization_id,
             config=req.config.model_dump(),
-            status=req.status,
+            status=AgentStatus.DRAFT.value,
             current_version=0,
             creator_id=creator_id,
         )
         return AgentOut.model_validate(await self.repo.create(agent))
 
-    # 更新 Agent（未发布直改；已发布则修改当前配置，下次发布生成新版本）
+    # 更新 Agent（配置仅草稿可改；状态可直接切换）
     async def update(self, agent_id: UUID, req: AgentUpdate) -> AgentOut:
         agent = await self.repo.get_by_id(agent_id)
         if not agent:
             raise NotFoundError("Agent 不存在")
+        # 非草稿状态仅允许切换状态，不允许改配置
+        if agent.status != AgentStatus.DRAFT.value:
+            has_config_change = any(
+                v is not None
+                for v in (
+                    req.name,
+                    req.description,
+                    req.icon_id,
+                    req.model_id,
+                    req.organization_id,
+                    req.config,
+                )
+            )
+            if has_config_change:
+                raise BizError("仅草稿状态的 Agent 可修改配置，请先重新编辑")
         if req.name is not None:
             agent.name = req.name
         if req.description is not None:
@@ -86,21 +104,25 @@ class AgentService:
         if req.config is not None:
             agent.config = req.config.model_dump()
         if req.status is not None:
-            agent.status = req.status
+            agent.status = req.status.value
         return AgentOut.model_validate(await self.repo.update(agent))
 
-    # 删除 Agent
+    # 删除 Agent（仅草稿 / 停止状态可删除，避免误删运行中的线上服务）
     async def delete(self, agent_id: UUID) -> None:
         agent = await self.repo.get_by_id(agent_id)
         if not agent:
             raise NotFoundError("Agent 不存在")
+        if agent.status not in (AgentStatus.DRAFT.value, AgentStatus.STOPPED.value):
+            raise BizError("仅草稿或停止状态的 Agent 可删除")
         await self.repo.delete(agent)
 
-    # 发布：将当前配置生成 published 版本快照，并更新 current_version
+    # 发布：将当前草稿配置生成 published 版本快照，更新 current_version，并进入运行中
     async def publish(self, agent_id: UUID, req: AgentPublish) -> AgentVersionOut:
         agent = await self.repo.get_by_id(agent_id)
         if not agent:
             raise NotFoundError("Agent 不存在")
+        if agent.status != AgentStatus.DRAFT.value:
+            raise BizError("仅草稿状态的 Agent 可发布")
         latest = await self.version_repo.get_latest(agent_id)
         next_version = (latest.version if latest else 0) + 1
         version = AgentVersion(
@@ -112,6 +134,7 @@ class AgentService:
         )
         created = await self.version_repo.create(version)
         agent.current_version = next_version
+        agent.status = AgentStatus.RUNNING.value
         await self.repo.update(agent)
         return AgentVersionOut.model_validate(created)
 
@@ -123,14 +146,32 @@ class AgentService:
         versions = await self.version_repo.list_by_agent(agent_id)
         return [AgentVersionOut.model_validate(v) for v in versions]
 
-    # 触发运行：本版仅返回受理回执（ai-service 尚未接入）
+    # 切换版本：将 current_version 指向指定历史版本快照（回滚）
+    async def switch_version(self, agent_id: UUID, req: AgentVersionSwitch) -> AgentOut:
+        agent = await self.repo.get_by_id(agent_id)
+        if not agent:
+            raise NotFoundError("Agent 不存在")
+        if agent.current_version == 0:
+            raise BizError("Agent 尚未发布，无法切换版本")
+        target = await self.version_repo.get_by_version(agent_id, req.version)
+        if not target:
+            raise BizError(f"目标版本 {req.version} 不存在")
+        if req.version == agent.current_version:
+            raise BizError("目标版本已是当前版本")
+        agent.current_version = req.version
+        return AgentOut.model_validate(await self.repo.update(agent))
+
+    # 触发运行：同步调用 AI 对话，返回模型回复
     async def run(self, agent_id: UUID, req: AgentRunRequest, user_id: UUID | None) -> AgentRunOut:
         agent = await self.repo.get_by_id(agent_id)
         if not agent:
             raise NotFoundError("Agent 不存在")
-        if agent.status != 1:
-            raise BizError("Agent 已停用，无法运行")
+        if agent.status in (AgentStatus.PAUSED.value, AgentStatus.STOPPED.value):
+            raise BizError("Agent 已暂停/停止，无法运行")
         if agent.current_version == 0:
             raise BizError("Agent 尚未发布，无法运行")
-        # TODO(ai-service): 调用独立 ai-service 触发运行，返回真实 run_id
-        return AgentRunOut(run_id="", status="running")
+        # 延迟导入：避免 agent.management 与 ai 模块循环依赖
+        from app.modules.ai.service import AiService
+
+        out = await AiService(self.db).chat(agent_id, req.input, user_id)
+        return AgentRunOut(run_id="", status="success", reply=out.reply, model=out.model)

@@ -7,14 +7,15 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.common.pagination import PageResult
 from app.common.response import ApiResponse, success
 from app.core.database import get_db
-from app.middleware.authentication import get_current_user
+from app.middleware.authentication import CurrentUserDep, get_current_user
 from app.middleware.permission import require_permissions
+from app.modules.system.operation_log.service import OperationLogService
 from app.modules.system.organization.codes import PermissionCode
 from app.modules.system.organization.schema import (
     OrganizationCreate,
@@ -100,9 +101,10 @@ async def get_organization(
 async def update_organization(
     organization_id: UUID,
     req: OrganizationUpdate,
+    current: CurrentUserDep,
     service: Annotated[OrganizationService, Depends(get_service)],
 ) -> ApiResponse[OrganizationOut]:
-    return success(data=await service.update(organization_id, req), message="更新成功")
+    return success(data=await service.update(organization_id, req, current), message="更新成功")
 
 
 # 删除组织接口
@@ -114,7 +116,14 @@ async def update_organization(
 )
 async def delete_organization(
     organization_id: UUID,
+    request: Request,
+    current: CurrentUserDep,
+    db: DbDep,
     service: Annotated[OrganizationService, Depends(get_service)],
 ) -> ApiResponse[None]:
-    await service.delete(organization_id)
+    await service.delete(organization_id, current)
+    await OperationLogService(db).record(
+        user=current, module="organization", action="delete", target_id=organization_id,
+        request=request,
+    )
     return success(message="删除成功")

@@ -15,3 +15,4 @@ class PermissionCode:
     AGENT_PUBLISH = "agent:agent:publish"
     AGENT_RUN = "agent:agent:run"
     AGENT_VERSION_LIST = "agent:agent:versionList"
+    AGENT_VERSION_SWITCH = "agent:agent:versionSwitch"

@@ -9,6 +9,7 @@
 from fastapi import APIRouter
 
 from app.modules.agent.api import router as agent_router
+from app.modules.ai.api import router as ai_router
 from app.modules.file.api import router as file_router
 from app.modules.iam.api import router as iam_router
 from app.modules.knowledge.api import router as knowledge_router
@@ -21,6 +22,7 @@ MODULES: list[APIRouter] = [
     file_router,
     knowledge_router,
     agent_router,
+    ai_router,
     system_router,
 ]
 

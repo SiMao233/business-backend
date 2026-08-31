@@ -6,6 +6,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.common.enums import AgentStatus
 from app.common.pagination import PageParams, PageResult, paginate
 from app.common.repository import BaseRepository
 from app.modules.agent.management.model import Agent, AgentVersion
@@ -36,7 +37,7 @@ class AgentRepository(BaseRepository):
         self,
         params: PageParams,
         keyword: str | None = None,
-        status: int | None = None,
+        status: AgentStatus | None = None,
         organization_id: UUID | None = None,
     ) -> PageResult[Any]:
         stmt = select(Agent).order_by(Agent.id.desc())
@@ -44,7 +45,7 @@ class AgentRepository(BaseRepository):
             like = f"%{keyword}%"
             stmt = stmt.where(Agent.name.like(like) | Agent.code.like(like))
         if status is not None:
-            stmt = stmt.where(Agent.status == status)
+            stmt = stmt.where(Agent.status == status.value)
         if organization_id is not None:
             stmt = stmt.where(Agent.organization_id == organization_id)
         return await paginate(self.db, stmt, params)
@@ -93,6 +94,14 @@ class AgentVersionRepository(BaseRepository):
             .where(AgentVersion.agent_id == agent_id)
             .order_by(AgentVersion.version.desc())
             .limit(1)
+        )
+        result = await self.db.execute(stmt)
+        return result.scalar_one_or_none()
+
+    # 查询指定版本号（运行时读取线上配置快照用）
+    async def get_by_version(self, agent_id: UUID, version: int) -> AgentVersion | None:
+        stmt = select(AgentVersion).where(
+            AgentVersion.agent_id == agent_id, AgentVersion.version == version
         )
         result = await self.db.execute(stmt)
         return result.scalar_one_or_none()
