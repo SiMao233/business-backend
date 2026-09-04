@@ -24,6 +24,11 @@ services:
       - "8000:8000"
     volumes:
       - file_storage:/app/storage
+      # RSA 密钥对（登录密码解密），服务器生成后挂载进容器
+      - ./keys:/app/keys:ro
+    networks:
+      default:
+        ipv4_address: 172.20.0.10
 
   # ---- 向量数据库：Qdrant（RAG 检索） ----
   # 应用容器内访问地址：qdrant:6333（同 compose 网络）；宿主机/外部访问：host.docker.internal:6333
@@ -41,6 +46,9 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      default:
+        ipv4_address: 172.20.0.11
 
   # ---- 日志栈：Loki 存储 + Promtail 采集 + Grafana 可视化 ----
   loki:
@@ -57,6 +65,9 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      default:
+        ipv4_address: 172.20.0.12
 
   promtail:
     image: grafana/promtail:3.0.0
@@ -70,6 +81,9 @@ services:
     depends_on:
       loki:
         condition: service_healthy
+    networks:
+      default:
+        ipv4_address: 172.20.0.13
 
   grafana:
     image: grafana/grafana:11.0.0
@@ -86,9 +100,19 @@ services:
       - ./docker/grafana/provisioning:/etc/grafana/provisioning:ro
     depends_on:
       - loki
+    networks:
+      default:
+        ipv4_address: 172.20.0.14
 
 volumes:
   file_storage:
   qdrant_storage:
   loki_data:
   grafana_data:
+
+# 自定义网络：为各服务分配固定 IP（容器重建后 IP 不变）
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
