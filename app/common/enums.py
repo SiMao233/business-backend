@@ -60,3 +60,18 @@ class AgentVersionStatus(BaseEnum):
 
     DRAFT = "draft"         # 草稿（未发布）
     PUBLISHED = "published" # 已发布（不可修改）
+
+
+class DocumentStatus(BaseEnum):
+    """知识库文档处理状态（切分/向量化流程）。
+
+    - pending：已登记，待处理
+    - parsing：切分/向量化中（ARQ 后台任务）
+    - parsed：已解析并向量化完成
+    - failed：处理失败（error_message 记录原因）
+    """
+
+    PENDING = "pending"     # 待处理
+    PARSING = "parsing"     # 处理中
+    PARSED = "parsed"       # 已解析
+    FAILED = "failed"       # 处理失败

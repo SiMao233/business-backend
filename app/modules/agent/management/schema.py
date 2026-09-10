@@ -2,14 +2,18 @@
 
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, field_serializer
+from pydantic import ConfigDict, Field, field_serializer
 
 from app.common.enums import AgentStatus
 from app.common.schema import ApiInModel, ApiOutModel, UtcDateTime
 
 
-class AgentConfig(BaseModel):
-    """Agent 核心配置（值对象，JSON 序列化存储）。"""
+class AgentConfig(ApiInModel):
+    """Agent 核心配置（值对象，JSON 序列化存储）。
+
+    继承 ApiInModel：入参支持驼峰（systemPrompt / maxTokens / knowledgeIds），
+    同时兼容 snake_case；出参统一序列化为驼峰，与 API 风格一致。
+    """
 
     system_prompt: str = Field(default="", description="系统提示词")
     temperature: float = Field(default=0.7, ge=0, le=2, description="采样温度")
@@ -17,6 +21,11 @@ class AgentConfig(BaseModel):
     tools: list[str] = Field(default_factory=list, description="启用的工具列表")
     knowledge_ids: list[UUID] = Field(default_factory=list, description="关联知识库 ID 列表")
     memory: dict = Field(default_factory=dict, description="记忆配置")
+
+    @field_serializer("knowledge_ids")
+    def serialize_knowledge_ids(self, value: list[UUID]) -> list[str]:
+        """输出不带连字符的 32 位十六进制字符串（与全站 UUID 出参约定一致）。"""
+        return [v.hex for v in value]
 
 
 class AgentCreate(ApiInModel):

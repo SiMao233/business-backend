@@ -9,3 +9,6 @@ class PermissionCode:
     """AI 能力-权限码。"""
 
     AI_CHAT = "ai:chat:chat"
+    CONVERSATION_LIST = "ai:conversation:list"
+    CONVERSATION_CREATE = "ai:conversation:create"
+    CONVERSATION_DELETE = "ai:conversation:delete"

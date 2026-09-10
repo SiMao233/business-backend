@@ -27,6 +27,8 @@ from app.core.security import hash_password
 from app.models import ModelProvider, Permission, Role, User
 from app.modules.agent.management.codes import PermissionCode as AgentPermissionCode
 from app.modules.agent.model.codes import PermissionCode as ModelPermissionCode
+from app.modules.ai.codes import PermissionCode as AiPermissionCode
+from app.modules.knowledge.codes import PermissionCode as KnowledgePermissionCode
 from app.modules.system.organization.codes import PermissionCode as OrganizationPermissionCode
 from app.modules.system.permission.codes import PermissionCode
 
@@ -165,6 +167,52 @@ PERMISSION_TREE: list[dict] = [
                             _btn(ModelPermissionCode.MODEL_INSTANCE_DELETE, "删除实例"),
                         ],
                     },
+                ],
+            },
+        ],
+    },
+    {
+        "name": "知识库管理",
+        "code": "knowledge",
+        "type": 1,
+        "children": [
+            {
+                "name": "知识库管理",
+                "code": "knowledge:knowledge",
+                "type": 2,
+                "children": [
+                    _btn(KnowledgePermissionCode.KNOWLEDGE_LIST, "知识库列表"),
+                    _btn(KnowledgePermissionCode.KNOWLEDGE_CREATE, "创建知识库"),
+                    _btn(KnowledgePermissionCode.KNOWLEDGE_UPDATE, "更新知识库"),
+                    _btn(KnowledgePermissionCode.KNOWLEDGE_DELETE, "删除知识库"),
+                    _btn(KnowledgePermissionCode.KNOWLEDGE_DOCUMENT_LIST, "文档列表"),
+                    _btn(KnowledgePermissionCode.KNOWLEDGE_DOCUMENT_UPLOAD, "上传文档"),
+                    _btn(KnowledgePermissionCode.KNOWLEDGE_DOCUMENT_DELETE, "删除文档"),
+                ],
+            },
+        ],
+    },
+    {
+        "name": "AI 能力",
+        "code": "ai",
+        "type": 1,
+        "children": [
+            {
+                "name": "AI 对话",
+                "code": "ai:chat",
+                "type": 2,
+                "children": [
+                    _btn(AiPermissionCode.AI_CHAT, "发起对话"),
+                ],
+            },
+            {
+                "name": "会话管理",
+                "code": "ai:conversation",
+                "type": 2,
+                "children": [
+                    _btn(AiPermissionCode.CONVERSATION_LIST, "会话列表"),
+                    _btn(AiPermissionCode.CONVERSATION_CREATE, "创建会话"),
+                    _btn(AiPermissionCode.CONVERSATION_DELETE, "删除会话"),
                 ],
             },
         ],

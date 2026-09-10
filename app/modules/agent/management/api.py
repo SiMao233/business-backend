@@ -96,7 +96,8 @@ async def update_agent(
     req: AgentUpdate,
     service: Annotated[AgentService, Depends(get_service)],
 ) -> ApiResponse[AgentOut]:
-    return success(data=await service.update(agent_id, req), message="更新成功")
+    await service.update(agent_id, req)
+    return success(message="更新成功")
 
 
 @router.delete(

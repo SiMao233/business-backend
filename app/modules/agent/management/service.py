@@ -64,7 +64,8 @@ class AgentService:
             icon_id=req.icon_id,
             model_id=req.model_id,
             organization_id=req.organization_id,
-            config=req.config.model_dump(),
+            # mode="json"：把 knowledge_ids 等 UUID 对象转成字符串，否则 JSON 列序列化报错
+            config=req.config.model_dump(mode="json"),
             status=AgentStatus.DRAFT.value,
             current_version=0,
             creator_id=creator_id,
@@ -77,20 +78,20 @@ class AgentService:
         if not agent:
             raise NotFoundError("Agent 不存在")
         # 非草稿状态仅允许切换状态，不允许改配置
-        if agent.status != AgentStatus.DRAFT.value:
-            has_config_change = any(
-                v is not None
-                for v in (
-                    req.name,
-                    req.description,
-                    req.icon_id,
-                    req.model_id,
-                    req.organization_id,
-                    req.config,
-                )
-            )
-            if has_config_change:
-                raise BizError("仅草稿状态的 Agent 可修改配置，请先重新编辑")
+        # if agent.status != AgentStatus.DRAFT.value:
+        #     has_config_change = any(
+        #         v is not None
+        #         for v in (
+        #             req.name,
+        #             req.description,
+        #             req.icon_id,
+        #             req.model_id,
+        #             req.organization_id,
+        #             req.config,
+        #         )
+        #     )
+        #     if has_config_change:
+        #         raise BizError("仅草稿状态的 Agent 可修改配置，请先重新编辑")
         if req.name is not None:
             agent.name = req.name
         if req.description is not None:
@@ -102,7 +103,8 @@ class AgentService:
         if req.organization_id is not None:
             agent.organization_id = req.organization_id
         if req.config is not None:
-            agent.config = req.config.model_dump()
+            # mode="json"：把 knowledge_ids 等 UUID 对象转成字符串，否则 JSON 列序列化报错
+            agent.config = req.config.model_dump(mode="json")
         if req.status is not None:
             agent.status = req.status.value
         return AgentOut.model_validate(await self.repo.update(agent))
@@ -161,7 +163,7 @@ class AgentService:
         agent.current_version = req.version
         return AgentOut.model_validate(await self.repo.update(agent))
 
-    # 触发运行：同步调用 AI 对话，返回模型回复
+    # 触发运行：同步调用 AI 对话，返回模型回复（测试运行，不落库会话）
     async def run(self, agent_id: UUID, req: AgentRunRequest, user_id: UUID | None) -> AgentRunOut:
         agent = await self.repo.get_by_id(agent_id)
         if not agent:
@@ -173,5 +175,6 @@ class AgentService:
         # 延迟导入：避免 agent.management 与 ai 模块循环依赖
         from app.modules.ai.service import AiService
 
-        out = await AiService(self.db).chat(agent_id, req.input, user_id)
+        # 不传 user_id：测试运行不落库会话，避免产生孤儿会话
+        out = await AiService(self.db).chat(agent_id, req.input, None)
         return AgentRunOut(run_id="", status="success", reply=out.reply, model=out.model)

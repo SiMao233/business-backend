@@ -102,6 +102,34 @@ class Settings(BaseSettings):
     # 对话最大历史轮数（保留最近 N 轮，用于上下文组装）
     ai_max_history_rounds: int = 10
 
+    # ---- 联网搜索（web_search 工具）----
+    # 搜索服务 API Key（Tavily / 阿里云百炼 / 博查等，.env 注入，勿硬编码）
+    web_search_api_key: str = ""
+    # 单次搜索返回结果条数
+    web_search_max_results: int = 5
+
+    # ---- 向量检索（Qdrant，RAG）----
+    # Qdrant 服务地址（本机 docker 为 127.0.0.1:6333；远程/容器内按部署调整）
+    qdrant_host: str = "127.0.0.1"
+    qdrant_port: int = 6333
+    # 是否使用 HTTPS（远程 Qdrant Cloud 需 true）
+    qdrant_https: bool = False
+    # API Key（Qdrant Cloud / 自建鉴权时使用，本地可留空）
+    qdrant_api_key: str | None = None
+    # 单一 collection 名（所有知识库向量共存，payload 按 knowledge_base_id 过滤）
+    qdrant_collection: str = "knowledge_chunks"
+
+    # ---- 文档切分（RAG 索引）----
+    # 切分块大小（字符）与重叠
+    chunk_size: int = 800
+    chunk_overlap: int = 120
+
+    # ---- RAG 检索 ----
+    # 每次检索返回的 top-k 块数
+    rag_top_k: int = 4
+    # 相似度阈值（低于该分数的结果丢弃；0~1，越大越严格）
+    rag_score_threshold: float = 0.7
+
     # ---- 日志 ----
     log_level: str = "INFO"
 
