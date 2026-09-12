@@ -6,7 +6,7 @@
 
 from uuid import UUID, uuid4
 
-from sqlalchemy import ForeignKey, String, Text, Uuid
+from sqlalchemy import JSON, ForeignKey, Integer, String, Text, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base, TimestampMixin
@@ -55,3 +55,10 @@ class AiMessage(TimestampMixin, Base):
     content: Mapped[str] = mapped_column(Text, nullable=False)
     # 模型推理内容（思维链，推理型模型才有；可空）
     reasoning: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # 工具 / 检索步骤（历史回看用；无步骤时为 NULL）
+    # 每项：{step_id, kind(retrieval|tool), name, status, output, cost_ms}（snake_case 存库，出参转驼峰）
+    steps: Mapped[list[dict] | None] = mapped_column(JSON, nullable=True)
+    # 思考耗时（毫秒）：首个 reasoning → 首个正文；无推理内容时为 NULL
+    thinking_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # 首字节耗时（毫秒）：服务端进入预检 → 首个正文；未产出正文时为 NULL
+    ttft_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)

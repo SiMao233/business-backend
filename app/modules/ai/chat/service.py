@@ -11,6 +11,16 @@
 - 同步 `AiChatService.chat()`：一次拿完整回复（Agent 测试运行 / ARQ 后台任务复用）；
 - 流式 `stream_chat(ctx)`：模块级异步生成器，产出 SSE 事件（meta / reasoning / tool / delta / error / done）。
 
+步骤与耗时落库（两条路径结构一致，便于刷新后还原）：
+- `ai_message.steps` **只落动作**：`kind=retrieval` 是**后端**预检索（非模型工具调用），
+  `kind=tool` 才是模型通过 tool_calls 自主发起的调用；每条带 `reasoning_offset`
+  （该步被触发时已产出的推理字符数），且只有 `done` 步骤入库（历史无 running）。
+- **出参是「思考 + 动作」合并后的时间线**（`done.steps` 与 `MessageOut.steps`）：
+  `thinking` 条目由 `steps.build_timeline()` 派生，只带 `{start, end}` 区间引用 `reasoning` 全文，
+  **不落库** → 零迁移、老消息立即获得时间线、切分规则改进后历史消息自动跟随。
+- `ai_message.thinking_ms` / `ttft_ms`：思考耗时与首字节耗时，仅流式路径有值
+  （同步路径拿不到「首 token」时刻，一律为 NULL）。
+
 设计约束（未来可拆独立 ai-service 的边界）：
 - 所有 LLM 调用收敛在本模块，RAG 检索收敛在 retrieval.py，向量库封装在 vector.py；
 - 会话与消息的存取统一委托 `ConversationService`（conversation 子包），本模块只管「怎么问模型」；
@@ -19,10 +29,11 @@
 """
 
 import asyncio
+import time
 from collections.abc import AsyncIterator
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import anyio
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage, ToolMessage
@@ -48,7 +59,8 @@ from app.modules.ai.chat.schema import (
 )
 from app.modules.ai.conversation.service import ConversationService
 from app.modules.ai.reasoning import ReasoningChatOpenAI
-from app.modules.ai.retrieval import format_context, retrieve_context, retrieve_hits
+from app.modules.ai.retrieval import format_context, retrieve_hits
+from app.modules.ai.steps import AiStepOut, StepKind, build_timeline
 from app.modules.ai.tools import build_tools
 
 # 纯 RAG 模式注入「参考资料」的提示词模板
@@ -143,6 +155,35 @@ def _accumulate_usage(usage: dict[str, int], chunk: Any, seen_ids: set[str]) -> 
     usage["total_tokens"] += int(meta.get("total_tokens") or 0)
 
 
+def collect_steps_from_messages(messages: list[BaseMessage]) -> list[dict]:
+    """同步路径专用：从完整消息序列反推动作步骤与推理锚点（纯函数）。
+
+    非流式拿不到单步耗时，`cost_ms` 一律为 None；无动作时返回空列表。
+    锚点按消息顺序累加：`AIMessage` 的 reasoning 先于其后的 `ToolMessage`，
+    与流式路径「offset = 该步被触发时已产出的推理字符数」口径一致。
+    """
+    steps: list[dict] = []
+    reasoning_len = 0
+    for msg in messages:
+        if isinstance(msg, AIMessage):
+            reasoning_len += len(_chunk_reasoning(msg))
+            continue
+        if not isinstance(msg, ToolMessage):
+            continue
+        steps.append(
+            {
+                "step_id": msg.tool_call_id or msg.name or "tool",
+                "kind": StepKind.TOOL.value,
+                "name": msg.name or "tool",
+                "status": "done",
+                "output": _chunk_text(msg)[:TOOL_OUTPUT_LIMIT],
+                "cost_ms": None,
+                "reasoning_offset": reasoning_len,
+            }
+        )
+    return steps
+
+
 # ---- 流式对话的数据结构 ----
 
 
@@ -152,6 +193,118 @@ class StreamEvent:
 
     type: str
     data: Any
+
+
+@dataclass
+class TokenTimer:
+    """耗时打点：分别记录「首个推理增量」与「首个正文增量」的时刻。
+
+    - `thinking_ms`：首个 reasoning → 首个正文（非推理模型无 reasoning → None）
+    - `ttft_ms`：服务端进入预检 → 首个正文（含 RAG 检索与装载等待；未产出正文 → None）
+
+    所有 mark 幂等（重复调用不覆盖首值）；`freeze()` 在流结束时调用一次，
+    使落库值与 `done` 事件取值完全一致（否则属性里回退 `perf_counter()` 会两次取值不同）。
+    """
+
+    started_at: float
+    reasoning_at: float | None = None
+    text_at: float | None = None
+    finished_at: float | None = None
+
+    def mark_reasoning(self) -> None:
+        """首个推理增量到达。"""
+        if self.reasoning_at is None:
+            self.reasoning_at = time.perf_counter()
+
+    def mark_text(self) -> None:
+        """首个正文增量到达。"""
+        if self.text_at is None:
+            self.text_at = time.perf_counter()
+
+    def freeze(self) -> None:
+        """流结束（含正常收尾 / 中断 / 报错）时冻结计时。"""
+        if self.finished_at is None:
+            self.finished_at = time.perf_counter()
+
+    def _thinking_end(self) -> float:
+        """思考阶段终点：优先用首个正文；无正文则用冻结时刻。"""
+        if self.text_at is not None:
+            return self.text_at
+        if self.finished_at is not None:
+            return self.finished_at
+        return time.perf_counter()
+
+    @property
+    def thinking_ms(self) -> int | None:
+        if self.reasoning_at is None:
+            return None
+        return max(0, round((self._thinking_end() - self.reasoning_at) * 1000))
+
+    @property
+    def ttft_ms(self) -> int | None:
+        if self.text_at is None:
+            return None
+        return max(0, round((self.text_at - self.started_at) * 1000))
+
+
+@dataclass
+class StepCollector:
+    """工具 / 检索步骤收集器：统一生成 step_id、单步耗时与推理锚点。
+
+    只记录 `status=done` 的步骤（历史回看不存在 running）。
+
+    **两类 dict 必须分开**（否则 `AiStreamToolOut(**payload)` 会因多键抛 TypeError）：
+    - `start()` / `finish()` 的**返回值** = SSE 事件载荷，键名严格等于 `AiStreamToolOut` 字段；
+    - `self.steps` 里的**落库结构** = 上面再加 `reasoning_offset`（供 `build_timeline` 定位）。
+    """
+
+    steps: list[dict] = field(default_factory=list)
+    # step_id -> (起始时刻, 该步被触发时已产出的推理字符数)
+    _started: dict[str, tuple[float, int]] = field(default_factory=dict)
+
+    def start(self, step_id: str, name: str, kind: str, reasoning_offset: int = 0) -> dict:
+        """登记一次调用的开始，返回可直接推给前端的 running 载荷。"""
+        self._started[step_id] = (time.perf_counter(), reasoning_offset)
+        return {
+            "step_id": step_id,
+            "kind": kind,
+            "name": name,
+            "status": "running",
+            "output": None,
+            "cost_ms": None,
+        }
+
+    def finish(
+        self, step_id: str, name: str, kind: str, output: str | None = None
+    ) -> dict:
+        """登记完成：返回 done 事件载荷，并把带锚点的记录追加进 `self.steps` 供落库。"""
+        started = self._started.pop(step_id, None)
+        cost_ms = (
+            round((time.perf_counter() - started[0]) * 1000) if started is not None else None
+        )
+        self.steps.append(
+            {
+                "step_id": step_id,
+                "kind": kind,
+                "name": name,
+                "status": "done",
+                "output": output,
+                "cost_ms": cost_ms,
+                "reasoning_offset": started[1] if started is not None else 0,
+            }
+        )
+        return {
+            "step_id": step_id,
+            "kind": kind,
+            "name": name,
+            "status": "done",
+            "output": output,
+            "cost_ms": cost_ms,
+        }
+
+    def dump(self) -> list[dict] | None:
+        """落库用：空列表返回 None，避免写入无意义的空 JSON。"""
+        return self.steps or None
 
 
 @dataclass
@@ -165,6 +318,8 @@ class ChatStreamContext:
     config: dict
     history: list[tuple[str, str]]
     user_input: str
+    # 请求进入预检的时刻（perf_counter），用于计算 ttft_ms
+    started_at: float = 0.0
 
 
 # ---- 流式执行（模块级：不依赖请求级数据库会话）----
@@ -178,16 +333,29 @@ async def _retrieve_hits_short_session(config: dict, query: str) -> list[dict]:
         return await retrieve_hits(db, config, query)
 
 
-async def _save_reply(conv_id: UUID | None, reply: str, reasoning: str = "") -> None:
-    """流式结束后落库 assistant 回复（独立短会话；失败只记日志，不影响已推送内容）。"""
-    if conv_id is None or (not reply and not reasoning):
+async def _save_reply(
+    conv_id: UUID | None,
+    reply: str,
+    reasoning: str = "",
+    thinking_ms: int | None = None,
+    ttft_ms: int | None = None,
+    steps: list[dict] | None = None,
+) -> None:
+    """流式结束后落库 assistant 回复（独立短会话；失败只记日志，不影响已推送内容）。
+
+    守卫条件含 `steps`：只检索、未产出正文就被客户端中断时也要落库，
+    否则「本次检索过」的记录会丢失（前端刷新后看不到步骤）。
+    """
+    if conv_id is None or (not reply and not reasoning and not steps):
         return
     # 延迟导入：避免与 core.database 的导入顺序耦合
     from app.core.database import AsyncSessionLocal
 
     try:
         async with AsyncSessionLocal() as db:
-            await ConversationService(db).save_assistant_message(conv_id, reply, reasoning)
+            await ConversationService(db).save_assistant_message(
+                conv_id, reply, reasoning, thinking_ms, ttft_ms, steps
+            )
     except Exception:  # noqa: BLE001 - 落库失败不应影响流式结果
         logger.exception("AI 流式回复落库失败 conversation={}", conv_id)
 
@@ -198,6 +366,7 @@ async def _stream_rag_mode(
     parts: list[str],
     reasoning_parts: list[str],
     usage: dict[str, int],
+    timer: TokenTimer,
 ) -> AsyncIterator[StreamEvent]:
     """纯 RAG 模式：用已检索好的参考资料组装消息，再流式调用模型。"""
     messages = build_messages(system_prompt_of(ctx.config), context, ctx.history, ctx.user_input)
@@ -206,10 +375,12 @@ async def _stream_rag_mode(
     async for chunk in ctx.llm.astream(messages, timeout=settings.ai_request_timeout):
         # 推理增量 → reasoning 事件（推理型模型才有；无则静默跳过）
         if reasoning := _chunk_reasoning(chunk):
+            timer.mark_reasoning()
             reasoning_parts.append(reasoning)
             yield StreamEvent("reasoning", AiStreamReasoningOut(content=reasoning))
         text = _chunk_text(chunk)
         if text:
+            timer.mark_text()
             parts.append(text)
             yield StreamEvent("delta", AiStreamDeltaOut(content=text))
         _accumulate_usage(usage, chunk, seen_ids)
@@ -222,11 +393,16 @@ async def _stream_tool_mode(
     parts: list[str],
     reasoning_parts: list[str],
     usage: dict[str, int],
+    timer: TokenTimer,
+    collector: StepCollector,
 ) -> AsyncIterator[StreamEvent]:
     """工具模式：走 LangChain 智能体逐 token 流式，并把工具调用过程推给前端。
 
     `context` 是预先检索好的参考资料（已推过 tool 事件），注入 system prompt，
     保证「绑定了知识库必定检索」；模型仍可继续调用 knowledge_retrieval 工具追问细节。
+
+    工具步骤用 `tool_call_id` 关联 running/done（而非工具名）：
+    流式下 `name` / `id` 只出现在首个 tool_call_chunk，用 name 兜底会漏判同一工具的多次调用。
     """
     from langchain.agents import create_agent
 
@@ -239,33 +415,49 @@ async def _stream_tool_mode(
 
     # stream_mode="messages"：逐 token 产出 (消息块, 元数据) 二元组
     async for chunk, _meta in agent.astream({"messages": messages}, stream_mode="messages"):
-        print('切片', chunk)
-        # 工具执行结果 → tool done（附带结果摘要）
+        # 工具执行结果 → tool done（附带结果摘要与该步耗时）
         if isinstance(chunk, ToolMessage):
+            step_id = chunk.tool_call_id or chunk.name or "tool"
             yield StreamEvent(
                 "tool",
                 AiStreamToolOut(
-                    name=chunk.name or "tool",
-                    status="done",
-                    output=_chunk_text(chunk)[:TOOL_OUTPUT_LIMIT],
+                    **collector.finish(
+                        step_id,
+                        chunk.name or "tool",
+                        StepKind.TOOL.value,
+                        _chunk_text(chunk)[:TOOL_OUTPUT_LIMIT],
+                    )
                 ),
             )
             continue
         # 模型推理增量 → reasoning 事件（推理型模型才有；与正文/tool 可能交错）
         if reasoning := _chunk_reasoning(chunk):
+            timer.mark_reasoning()
             reasoning_parts.append(reasoning)
             yield StreamEvent("reasoning", AiStreamReasoningOut(content=reasoning))
-        # 模型发起工具调用 → tool running（按调用 ID 去重：同一工具可被多次调用）
+        # 模型发起工具调用 → tool running（step_id 即 tool_call_id，可区分同名多次调用）
         for call in getattr(chunk, "tool_call_chunks", None) or []:
             if not isinstance(call, dict):
                 continue
             name = call.get("name")
-            key = call.get("id") or name
-            if key and name and key not in started_tools:
-                started_tools.add(key)
-                yield StreamEvent("tool", AiStreamToolOut(name=name, status="running"))
+            call_id = call.get("id")
+            if name and call_id and call_id not in started_tools:
+                started_tools.add(call_id)
+                yield StreamEvent(
+                    "tool",
+                    AiStreamToolOut(
+                        **collector.start(
+                            call_id,
+                            name,
+                            StepKind.TOOL.value,
+                            # 锚点：该步被触发时已产出的推理字符数（决定它插在思考文本的哪个位置）
+                            sum(map(len, reasoning_parts)),
+                        )
+                    ),
+                )
         text = _chunk_text(chunk)
         if text:
+            timer.mark_text()
             parts.append(text)
             yield StreamEvent("delta", AiStreamDeltaOut(content=text))
         _accumulate_usage(usage, chunk, seen_ids)
@@ -276,62 +468,123 @@ async def stream_chat(ctx: ChatStreamContext) -> AsyncIterator[StreamEvent]:
 
     - 流中途异常不再抛出（响应已开始，改不了状态码）：转 `error` 事件后正常收尾；
     - 客户端中断（CancelledError）不发 done，但会把已生成内容落库；
-    - 落库用独立短会话 + 取消屏蔽（shield），保证中断时也能写入部分内容。
-    - 绑定知识库则先统一检索（两种模式一致），避免工具模式下模型不调工具就"没检索直接答"。
+    - 落库用独立短会话 + 取消屏蔽（shield），保证中断时也能写入部分内容；
+      只检索、未产出正文就被中断时同样落库（steps 非空即写）；
+    - 绑定知识库则先统一检索（两种模式一致），避免工具模式下模型不调工具就"没检索直接答"；
+    - 每个事件都带单调递增的 `seq`（由 `_emit` 统一发号，预检索与模型事件共用同一序号空间）；
+      实时态前端按 `seq` 交错渲染即可；
+    - `done` 事件里的 `steps`（思考 + 动作时间线）/ `thinking_ms` / `ttft_ms`
+      与落库值、与历史接口完全一致（先 `freeze()` 再取值，且用同一纯函数）。
     """
     parts: list[str] = []
     reasoning_parts: list[str] = []
     usage = {"input_tokens": 0, "output_tokens": 0, "total_tokens": 0}
     finish_reason = FINISH_STOP
     tools = build_tools(ctx.config)
+    timer = TokenTimer(started_at=ctx.started_at)
+    collector = StepCollector()
+    seq = 0
 
-    yield StreamEvent(
-        "meta",
-        AiStreamMetaOut(agent_id=ctx.agent_id, session_id=ctx.conv_id, model=ctx.model_code),
+    def _emit(event: StreamEvent) -> StreamEvent:
+        """统一发号：把单调递增的 seq 写进事件载荷并返回。
+
+        计数器**只在这一处**自增：预检索事件与内层生成器事件共用同一个序号空间，
+        若分别在两处计数会撞号，前端排序随之错乱。
+        """
+        nonlocal seq
+        seq += 1
+        event.data.seq = seq
+        return event
+
+    yield _emit(
+        StreamEvent(
+            "meta",
+            AiStreamMetaOut(agent_id=ctx.agent_id, session_id=ctx.conv_id, model=ctx.model_code),
+        )
     )
 
     try:
         # 预检索：只要绑定了知识库就检索（不受"模型是否愿意调工具"影响）
+        # kind=retrieval：这是后端主动检索，并非模型发起的工具调用，前端需区别展示
         context = ""
         if ctx.config.get("knowledge_ids"):
-            yield StreamEvent("tool", AiStreamToolOut(name=KNOWLEDGE_TOOL, status="running"))
+            step_id = uuid4().hex
+            # 预检索发生在任何 LLM 调用之前，推理必为空 → 锚点恒为 0
+            yield _emit(
+                StreamEvent(
+                    "tool",
+                    AiStreamToolOut(
+                        **collector.start(step_id, KNOWLEDGE_TOOL, StepKind.RETRIEVAL.value, 0)
+                    ),
+                )
+            )
             hits = await _retrieve_hits_short_session(ctx.config, ctx.user_input)
             context = format_context(hits)
-            yield StreamEvent(
-                "tool",
-                AiStreamToolOut(
-                    name=KNOWLEDGE_TOOL, status="done", output=f"命中 {len(hits)} 条参考资料"
-                ),
+            yield _emit(
+                StreamEvent(
+                    "tool",
+                    AiStreamToolOut(
+                        **collector.finish(
+                            step_id,
+                            KNOWLEDGE_TOOL,
+                            StepKind.RETRIEVAL.value,
+                            f"命中 {len(hits)} 条参考资料",
+                        )
+                    ),
+                )
             )
 
         if tools:
-            async for event in _stream_tool_mode(ctx, tools, context, parts, reasoning_parts, usage):
-                yield event
+            async for event in _stream_tool_mode(
+                ctx, tools, context, parts, reasoning_parts, usage, timer, collector
+            ):
+                yield _emit(event)
         else:
-            async for event in _stream_rag_mode(ctx, context, parts, reasoning_parts, usage):
-                yield event
+            async for event in _stream_rag_mode(ctx, context, parts, reasoning_parts, usage, timer):
+                yield _emit(event)
     except asyncio.CancelledError:
         # 客户端断开：不发 done（连接已断），交由 finally 落库已生成内容
         raise
     except Exception as exc:  # noqa: BLE001 - 统一转 error 事件
         logger.exception("AI 流式对话失败 agent_id={} model={}", ctx.agent_id, ctx.model_code)
         finish_reason = FINISH_ERROR
-        yield StreamEvent("error", AiStreamErrorOut(code=500, message=f"模型调用失败: {exc}"))
+        yield _emit(
+            StreamEvent("error", AiStreamErrorOut(code=500, message=f"模型调用失败: {exc}"))
+        )
     finally:
         # 取消屏蔽：客户端中断后仍要完成落库（不 shield 的话 await 会被立即取消）
         with anyio.CancelScope(shield=True):
-            await _save_reply(ctx.conv_id, "".join(parts), "".join(reasoning_parts))
+            # 先冻结计时，保证落库值与 done 事件取值完全一致
+            timer.freeze()
+            await _save_reply(
+                ctx.conv_id,
+                "".join(parts),
+                "".join(reasoning_parts),
+                timer.thinking_ms,
+                timer.ttft_ms,
+                collector.dump(),
+            )
 
-    yield StreamEvent(
-        "done",
-        AiStreamDoneOut(
-            session_id=ctx.conv_id,
-            content="".join(parts),
-            reasoning="".join(reasoning_parts),
-            model=ctx.model_code,
-            finish_reason=finish_reason,
-            usage=AiStreamUsageOut(**usage),
-        ),
+    reasoning_text = "".join(reasoning_parts)
+    yield _emit(
+        StreamEvent(
+            "done",
+            AiStreamDoneOut(
+                session_id=ctx.conv_id,
+                content="".join(parts),
+                reasoning=reasoning_text,
+                # 时间线：thinking 片段与动作按位置交错（与历史出参用同一纯函数，结果必然一致）
+                steps=[
+                    AiStepOut.model_validate(s)
+                    for s in build_timeline(collector.steps, reasoning_text)
+                ],
+                thinking_ms=timer.thinking_ms,
+                ttft_ms=timer.ttft_ms,
+                model=ctx.model_code,
+                finish_reason=finish_reason,
+                usage=AiStreamUsageOut(**usage),
+            ),
+        )
     )
 
 
@@ -369,13 +622,30 @@ class AiChatService:
         tools = build_tools(config)
         settings = get_settings()
         reasoning = ""
+        steps: list[dict] = []
         try:
+            # 预检索：与流式路径保持一致 —— 只要绑定知识库就先检索并注入参考资料，
+            # 避免工具模式下模型不调工具就"没检索直接答"；同时记录一条 retrieval 步骤。
+            context = ""
+            if config.get("knowledge_ids"):
+                hits = await retrieve_hits(self.db, config, user_input)
+                context = format_context(hits)
+                steps.append(
+                    {
+                        "step_id": uuid4().hex,
+                        "kind": StepKind.RETRIEVAL.value,
+                        "name": KNOWLEDGE_TOOL,
+                        "status": "done",
+                        "output": f"命中 {len(hits)} 条参考资料",
+                        "cost_ms": None,
+                        # 预检索在 LLM 调用之前，推理必为空
+                        "reasoning_offset": 0,
+                    }
+                )
+
             if tools:
                 from langchain.agents import create_agent
 
-                # 工具模式同样先检索并注入参考资料：模型可能不调工具就直接回答，
-                # 导致"配了知识库却没检索"；knowledge_retrieval 工具仍可用于追问细节。
-                context = await retrieve_context(self.db, config, user_input)
                 agent_graph = create_agent(
                     llm, tools, system_prompt=compose_system_prompt(system_prompt, context)
                 )
@@ -387,9 +657,10 @@ class AiChatService:
                 reasoning = "".join(
                     _chunk_reasoning(m) for m in result["messages"] if isinstance(m, AIMessage)
                 )
+                # 从完整消息序列反推模型发起的工具调用步骤（非流式无单步耗时）
+                steps.extend(collect_steps_from_messages(result["messages"]))
             else:
-                # 纯 RAG 模式：无条件检索知识库 → 组装上下文 → 调用模型
-                context = await retrieve_context(self.db, config, user_input)
+                # 纯 RAG 模式：组装上下文 → 调用模型
                 messages = build_messages(system_prompt, context, history, user_input)
                 response = await llm.ainvoke(messages, timeout=settings.ai_request_timeout)
                 reply = response.content if hasattr(response, "content") else str(response)
@@ -398,9 +669,11 @@ class AiChatService:
             logger.exception("LLM 调用失败 agent_id={} model={}", agent_id, model_code)
             raise BizError(f"模型调用失败: {exc}") from exc
 
-        # 落库 assistant 回复
+        # 落库 assistant 回复（同步路径拿不到「首 token」时刻，两个耗时字段留空）
         if conv_id is not None:
-            await self.conv_service.save_assistant_message(conv_id, reply, reasoning)
+            await self.conv_service.save_assistant_message(
+                conv_id, reply, reasoning, None, None, steps or None
+            )
 
         logger.info(
             "AI chat done agent_id={} model={} user_id={} session={}",
@@ -413,6 +686,8 @@ class AiChatService:
             agent_id=agent_id,
             reply=reply,
             reasoning=reasoning,
+            # 时间线：thinking 片段与动作按位置交错（与流式路径同一纯函数）
+            steps=[AiStepOut.model_validate(s) for s in build_timeline(steps, reasoning)],
             model=model_code,
             async_=False,
             session_id=conv_id,
@@ -430,7 +705,10 @@ class AiChatService:
 
         必须在「响应开始前」执行（HTTP 层由依赖调用）：此阶段失败会抛 AppError，
         由全局异常处理器返回统一 JSON 错误体；进入流式阶段后失败只能以 error 事件返回。
+
+        入口处即打点 `started_at`，作为 `ttft_ms`（首字节耗时）的起点。
         """
+        started_at = time.perf_counter()
         agent, config = await self._load_agent_config(agent_id)
         conv_id, history = await self._resolve_conversation(agent_id, user_input, user_id, session_id)
         llm, model_code = await self._build_llm(agent, config, conv_id)
@@ -442,6 +720,7 @@ class AiChatService:
             config=config,
             history=history,
             user_input=user_input,
+            started_at=started_at,
         )
 
     # ---- ARQ 任务入口（异步）----

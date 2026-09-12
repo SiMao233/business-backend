@@ -25,6 +25,7 @@ from app.modules.ai.conversation.schema import (
 )
 from app.modules.ai.model import AiConversation, AiMessage
 from app.modules.ai.repository import ConversationRepository, MessageRepository
+from app.modules.ai.steps import AiStepOut, build_timeline
 
 
 class ConversationService:
@@ -76,10 +77,25 @@ class ConversationService:
         await self.conv_repo.delete(conv)
 
     async def list_messages(self, conversation_id: UUID, user_id: UUID) -> list[MessageOut]:
-        """查询会话消息列表（校验归属，时间升序）。"""
+        """查询会话消息列表（校验归属，时间升序）。
+
+        `steps` 在这里由「落库动作 + reasoning 全文」**读时派生**为思考/动作统一时间线：
+        `thinking` 条目不落库，因此切分规则改进后历史消息会自动跟随，
+        第一期写入的老消息（`steps` 里没有 `reasoning_offset`）也立即具备时间线。
+        """
         await self.get_owned(conversation_id, user_id)
         messages = await self.msg_repo.list_by_conversation(conversation_id)
-        return [MessageOut.model_validate(m) for m in messages]
+
+        out: list[MessageOut] = []
+        for msg in messages:
+            item = MessageOut.model_validate(msg)
+            if item.role == "assistant" and (msg.steps or msg.reasoning):
+                item.steps = [
+                    AiStepOut.model_validate(s)
+                    for s in build_timeline(msg.steps, msg.reasoning)
+                ]
+            out.append(item)
+        return out
 
     # ---- 归属校验 ----
     async def get_owned(self, conversation_id: UUID, user_id: UUID) -> AiConversation:
@@ -132,14 +148,27 @@ class ConversationService:
         return [(m.role, m.content) for m in recent]
 
     async def save_assistant_message(
-        self, conversation_id: UUID, content: str, reasoning: str | None = None
+        self,
+        conversation_id: UUID,
+        content: str,
+        reasoning: str | None = None,
+        thinking_ms: int | None = None,
+        ttft_ms: int | None = None,
+        steps: list[dict] | None = None,
     ) -> None:
-        """落库 assistant 回复（会话记忆）。"""
+        """落库 assistant 回复（会话记忆）。
+
+        `steps` 为工具 / 检索步骤（snake_case dict 列表），落 JSON 列；
+        调用方需保证已是可 JSON 序列化的结构（UUID 等需先转 str）。
+        """
         await self.msg_repo.create(
             AiMessage(
                 conversation_id=conversation_id,
                 role="assistant",
                 content=content,
                 reasoning=reasoning,
+                thinking_ms=thinking_ms,
+                ttft_ms=ttft_ms,
+                steps=steps,
             )
         )

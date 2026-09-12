@@ -5,6 +5,7 @@ from uuid import UUID
 from pydantic import ConfigDict, Field, field_serializer
 
 from app.common.schema import ApiInModel, ApiOutModel, UtcDateTime
+from app.modules.ai.steps import AiStepOut
 
 
 class ConversationCreate(ApiInModel):
@@ -51,6 +52,12 @@ class MessageOut(ApiOutModel):
     role: str
     content: str
     reasoning: str | None = None
+    # 思考 / 检索 / 工具**统一时间线**（读时派生，不落库）：
+    # kind=thinking 的条目用 start/end 引用上面的 reasoning 区间，其余为动作条目
+    steps: list[AiStepOut] | None = None
+    # 思考耗时（毫秒；无推理内容时为 null）与首字节耗时（毫秒）
+    thinking_ms: int | None = None
+    ttft_ms: int | None = None
     create_time: UtcDateTime
 
     @field_serializer("id", "conversation_id")
