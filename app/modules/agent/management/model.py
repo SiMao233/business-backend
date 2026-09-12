@@ -6,7 +6,7 @@ Agent 配置管理：Agent（sys_agent）定义 + AgentVersion（sys_agent_versi
 
 from uuid import UUID, uuid4
 
-from sqlalchemy import JSON, ForeignKey, Integer, String, Uuid
+from sqlalchemy import JSON, ForeignKey, String, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base, TimestampMixin
@@ -48,8 +48,8 @@ class Agent(TimestampMixin, Base):
     # 生命周期状态（AgentStatus：draft / running / paused / stopped）
     status: Mapped[str] = mapped_column(String(16), default="draft", nullable=False)
 
-    # 当前发布版本号（0=未发布）
-    current_version: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    # 当前发布版本号（空串=未发布；用户自定义版本号，如 v1.0.0）
+    current_version: Mapped[str] = mapped_column(String(64), default="", nullable=False)
 
     # 创建人（用户删除后保留，置空）
     creator_id: Mapped[UUID | None] = mapped_column(
@@ -68,8 +68,8 @@ class AgentVersion(TimestampMixin, Base):
         Uuid, ForeignKey("sys_agent.id", ondelete="CASCADE"), nullable=False, index=True
     )
 
-    # 自增版本号（1,2,3...）
-    version: Mapped[int] = mapped_column(Integer, nullable=False)
+    # 用户自定义版本号（如 v1.0.0，同 Agent 下唯一）
+    version: Mapped[str] = mapped_column(String(64), nullable=False)
 
     # 该版本配置快照
     config: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)

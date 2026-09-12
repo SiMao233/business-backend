@@ -77,29 +77,29 @@ class AgentVersionRepository(BaseRepository):
     def __init__(self, db: AsyncSession) -> None:
         super().__init__(db, AgentVersion)
 
-    # 查询某 Agent 的全部版本（按版本号倒序）
+    # 查询某 Agent 的全部版本（按创建时间倒序，字符串版本号无法按数字排序）
     async def list_by_agent(self, agent_id: UUID) -> list[AgentVersion]:
         stmt = (
             select(AgentVersion)
             .where(AgentVersion.agent_id == agent_id)
-            .order_by(AgentVersion.version.desc())
+            .order_by(AgentVersion.create_time.desc())
         )
         result = await self.db.execute(stmt)
         return list(result.scalars().all())
 
-    # 查询某 Agent 的最新版本（发布时计算下一个版本号用）
+    # 查询某 Agent 的最新版本（按创建时间倒序）
     async def get_latest(self, agent_id: UUID) -> AgentVersion | None:
         stmt = (
             select(AgentVersion)
             .where(AgentVersion.agent_id == agent_id)
-            .order_by(AgentVersion.version.desc())
+            .order_by(AgentVersion.create_time.desc())
             .limit(1)
         )
         result = await self.db.execute(stmt)
         return result.scalar_one_or_none()
 
     # 查询指定版本号（运行时读取线上配置快照用）
-    async def get_by_version(self, agent_id: UUID, version: int) -> AgentVersion | None:
+    async def get_by_version(self, agent_id: UUID, version: str) -> AgentVersion | None:
         stmt = select(AgentVersion).where(
             AgentVersion.agent_id == agent_id, AgentVersion.version == version
         )

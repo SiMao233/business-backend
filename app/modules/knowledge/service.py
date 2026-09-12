@@ -105,7 +105,8 @@ class KnowledgeService:
         return KnowledgeBaseOut.model_validate(await self.repo.update(kb))
 
     # 删除知识库（文档/切分块由 DB CASCADE 删除；同时清理 Qdrant 向量）
-    async def delete(self, knowledge_base_id: UUID) -> None:
+    # 返回被删除对象，供 API 层写入操作日志摘要
+    async def delete(self, knowledge_base_id: UUID) -> KnowledgeBase:
         kb = await self.repo.get_by_id(knowledge_base_id)
         if not kb:
             raise NotFoundError("知识库不存在")
@@ -114,6 +115,7 @@ class KnowledgeService:
 
         await vector.delete_by_filter(knowledge_base_id=kb.id.hex)
         await self.repo.delete(kb)
+        return kb
 
     # 上传文档：复用文件上传 → 建文档记录(pending) → 入队 ARQ 后台向量化
     async def upload_document(
@@ -145,7 +147,8 @@ class KnowledgeService:
         return DocumentOut.model_validate(doc)
 
     # 删除文档：清理 Qdrant 向量 + 删除记录（切分块由 DB CASCADE 删除）
-    async def delete_document(self, document_id: UUID) -> None:
+    # 返回被删除对象，供 API 层写入操作日志摘要
+    async def delete_document(self, document_id: UUID) -> KnowledgeDocument:
         doc = await self.doc_repo.get_by_id(document_id)
         if not doc:
             raise NotFoundError("文档不存在")
@@ -153,6 +156,7 @@ class KnowledgeService:
 
         await vector.delete_by_filter(document_id=doc.id.hex)
         await self.doc_repo.delete(doc)
+        return doc
 
     # 重试文档向量化：复用原文件重新入队（仅 failed / pending 可重试）
     async def reprocess_document(self, document_id: UUID) -> DocumentOut:

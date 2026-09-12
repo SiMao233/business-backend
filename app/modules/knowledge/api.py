@@ -8,7 +8,7 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, File, Form, UploadFile
+from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.common.pagination import PageResult
@@ -29,6 +29,7 @@ from app.modules.knowledge.schema import (
     KnowledgeBaseUpdate,
 )
 from app.modules.knowledge.service import KnowledgeService
+from app.modules.system.operation_log.service import OperationLogService
 
 router = APIRouter(prefix="/knowledge", tags=["知识库"], dependencies=[Depends(get_current_user)])
 
@@ -91,13 +92,28 @@ async def get_knowledge_base(
     summary="更新知识库",
     dependencies=[Depends(require_permissions(PermissionCode.KNOWLEDGE_UPDATE))],
 )
-# 更新知识库：按 ID 修改知识库信息
+# 更新知识库：按 ID 修改知识库信息（记录操作日志：embedding 模型/状态变更影响检索语义）
 async def update_knowledge_base(
     knowledge_base_id: UUID,
     req: KnowledgeBaseUpdate,
+    request: Request,
+    current: CurrentUserDep,
+    db: DbDep,
     service: Annotated[KnowledgeService, Depends(get_service)],
 ) -> ApiResponse[KnowledgeBaseOut]:
-    return success(data=await service.update(knowledge_base_id, req), message="更新成功")
+    result = await service.update(knowledge_base_id, req)
+    await OperationLogService(db).record(
+        user=current, module="knowledge", action="update", target_id=knowledge_base_id,
+        detail={
+            "name": result.name,
+            "status": result.status,
+            "embedding_model_id": (
+                result.embedding_model_id.hex if result.embedding_model_id else None
+            ),
+        },
+        request=request,
+    )
+    return success(data=result, message="更新成功")
 
 
 @router.delete(
@@ -106,12 +122,19 @@ async def update_knowledge_base(
     summary="删除知识库",
     dependencies=[Depends(require_permissions(PermissionCode.KNOWLEDGE_DELETE))],
 )
-# 删除知识库：按 ID 删除（文档/切分块级联删除）
+# 删除知识库：按 ID 删除（文档/切分块级联删除；记录操作日志）
 async def delete_knowledge_base(
     knowledge_base_id: UUID,
+    request: Request,
+    current: CurrentUserDep,
+    db: DbDep,
     service: Annotated[KnowledgeService, Depends(get_service)],
 ) -> ApiResponse[None]:
-    await service.delete(knowledge_base_id)
+    deleted = await service.delete(knowledge_base_id)
+    await OperationLogService(db).record(
+        user=current, module="knowledge", action="delete", target_id=knowledge_base_id,
+        detail={"code": deleted.code, "name": deleted.name}, request=request,
+    )
     return success(message="删除成功")
 
 
@@ -141,13 +164,18 @@ async def list_documents(
 async def upload_document(
     file: Annotated[UploadFile, File(description="文档文件")],
     knowledge_base_id: Annotated[UUID, Form(description="知识库 ID")],
-    current_user: CurrentUserDep = None,
-    service: Annotated[KnowledgeService, Depends(get_service)] = None,
+    request: Request,
+    current: CurrentUserDep,
+    db: DbDep,
+    service: Annotated[KnowledgeService, Depends(get_service)],
 ) -> ApiResponse[DocumentOut]:
-    return success(
-        data=await service.upload_document(file, knowledge_base_id, current_user.user_id),
-        message="上传成功，后台向量化处理中",
+    doc = await service.upload_document(file, knowledge_base_id, current.user_id)
+    await OperationLogService(db).record(
+        user=current, module="knowledge", action="uploadDocument",
+        target_id=knowledge_base_id,
+        detail={"document_id": doc.id.hex, "name": doc.name}, request=request,
     )
+    return success(data=doc, message="上传成功，后台向量化处理中")
 
 
 @router.delete(
@@ -156,12 +184,24 @@ async def upload_document(
     summary="删除知识库文档",
     dependencies=[Depends(require_permissions(PermissionCode.KNOWLEDGE_DOCUMENT_DELETE))],
 )
-# 删除文档：清理 Qdrant 向量 + 删除记录（切分块级联删除）
+# 删除文档：清理 Qdrant 向量 + 删除记录（切分块级联删除；记录操作日志）
 async def delete_document(
     document_id: UUID,
+    request: Request,
+    current: CurrentUserDep,
+    db: DbDep,
     service: Annotated[KnowledgeService, Depends(get_service)],
 ) -> ApiResponse[None]:
-    await service.delete_document(document_id)
+    deleted = await service.delete_document(document_id)
+    await OperationLogService(db).record(
+        user=current, module="knowledge", action="deleteDocument",
+        target_id=document_id,
+        detail={
+            "name": deleted.name,
+            "knowledge_base_id": deleted.knowledge_base_id.hex,
+        },
+        request=request,
+    )
     return success(message="删除成功")
 
 
@@ -171,15 +211,20 @@ async def delete_document(
     summary="重试文档向量化",
     dependencies=[Depends(require_permissions(PermissionCode.KNOWLEDGE_DOCUMENT_UPLOAD))],
 )
-# 重试文档：复用原文件重新入队后台向量化（仅 failed / pending 可重试）
+# 重试文档：复用原文件重新入队后台向量化（仅 failed / pending 可重试；记录操作日志）
 async def reprocess_document(
     document_id: UUID,
+    request: Request,
+    current: CurrentUserDep,
+    db: DbDep,
     service: Annotated[KnowledgeService, Depends(get_service)],
 ) -> ApiResponse[DocumentOut]:
-    return success(
-        data=await service.reprocess_document(document_id),
-        message="已重新入队，后台向量化处理中",
+    doc = await service.reprocess_document(document_id)
+    await OperationLogService(db).record(
+        user=current, module="knowledge", action="reprocessDocument",
+        target_id=document_id, detail={"name": doc.name}, request=request,
     )
+    return success(data=doc, message="已重新入队，后台向量化处理中")
 
 
 # ---- 分块查询 / 分块搜索（动作前置、id 放最后）----

@@ -53,3 +53,5 @@ class AiMessage(TimestampMixin, Base):
 
     # 消息内容
     content: Mapped[str] = mapped_column(Text, nullable=False)
+    # 模型推理内容（思维链，推理型模型才有；可空）
+    reasoning: Mapped[str | None] = mapped_column(Text, nullable=True)

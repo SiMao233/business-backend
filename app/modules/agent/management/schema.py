@@ -68,7 +68,7 @@ class AgentOut(ApiOutModel):
     organization_id: UUID | None = None
     config: AgentConfig
     status: AgentStatus
-    current_version: int
+    current_version: str
     creator_id: UUID | None = None
     create_time: UtcDateTime
     update_time: UtcDateTime
@@ -92,13 +92,14 @@ class AgentQuery(ApiInModel):
 class AgentPublish(ApiInModel):
     """发布 Agent 入参。"""
 
+    version: str = Field(min_length=1, max_length=64, description="版本号（用户自定义，如 v1.0.0）")
     changelog: str | None = Field(default=None, max_length=512, description="发布说明")
 
 
 class AgentVersionSwitch(ApiInModel):
     """切换 Agent 版本入参（回滚到历史版本）。"""
 
-    version: int = Field(ge=1, description="目标版本号")
+    version: str = Field(min_length=1, max_length=64, description="目标版本号")
 
 
 class AgentVersionOut(ApiOutModel):
@@ -108,7 +109,7 @@ class AgentVersionOut(ApiOutModel):
 
     id: UUID
     agent_id: UUID
-    version: int
+    version: str
     config: AgentConfig
     changelog: str | None = None
     status: str

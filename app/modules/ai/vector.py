@@ -129,9 +129,10 @@ async def search_chunks(
     """
     settings = get_settings()
     client = get_qdrant_client()
-    hits = await client.search(
+    # qdrant-client 1.19 已移除 `search`（1.12 起废弃、1.16 起删除），统一用 query_points
+    result = await client.query_points(
         collection_name=settings.qdrant_collection,
-        query_vector=query_vector,
+        query=query_vector,
         limit=top_k,
         query_filter=qdrant_models.Filter(
             must=[
@@ -141,6 +142,7 @@ async def search_chunks(
                 )
             ]
         ),
+        with_payload=True,
     )
     return [
         {
@@ -149,7 +151,7 @@ async def search_chunks(
             "content": hit.payload.get("content", ""),
             "score": hit.score,
         }
-        for hit in hits
+        for hit in result.points
         if hit.score >= settings.rag_score_threshold
     ]
 

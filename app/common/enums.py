@@ -43,13 +43,15 @@ class ModelType(BaseEnum):
 class AgentStatus(BaseEnum):
     """Agent 生命周期状态。
 
-    - draft：草稿，可编辑、不可运行（current_version>0 时线上继续跑旧版本）
+    - draft：草稿，可编辑、不可运行（current_version 为空时线上继续跑旧版本）
+    - pending：待发布（已修改配置，需重新发布）
     - running：运行中，可运行、不可编辑
     - paused：暂停，不可运行、可恢复
     - stopped：停止，不可运行
     """
 
     DRAFT = "draft"         # 草稿（可编辑）
+    PENDING = "pending"     # 待发布（已修改配置，需重新发布）
     RUNNING = "running"     # 运行中（可运行）
     PAUSED = "paused"       # 暂停（可恢复）
     STOPPED = "stopped"     # 停止

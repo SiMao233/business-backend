@@ -39,12 +39,12 @@ async def enqueue_job(function: str, *args) -> None:
 async def run_agent_chat(ctx: dict, agent_id: str, user_input: str, user_id: str | None = None) -> dict:
     """后台执行 Agent 对话（ARQ 任务）。
 
-    由 `app/modules/ai/service.py` 入队调用；此处延迟导入 AiService，
+    由 `app/modules/ai/chat/service.py` 入队调用；此处延迟导入 AiChatService，
     避免 worker 启动时与 FastAPI 应用模块产生循环依赖。
     """
-    from app.modules.ai.service import AiService
+    from app.modules.ai.chat.service import AiChatService
 
-    return await AiService.chat_task(agent_id, user_input, user_id)
+    return await AiChatService.chat_task(agent_id, user_input, user_id)
 
 
 async def process_document(ctx: dict, document_id: str) -> dict:

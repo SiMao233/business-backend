@@ -7,7 +7,7 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.common.pagination import PageResult
@@ -28,6 +28,7 @@ from app.modules.agent.management.schema import (
     AgentVersionSwitch,
 )
 from app.modules.agent.management.service import AgentService
+from app.modules.system.operation_log.service import OperationLogService
 
 router = APIRouter(prefix="/management", tags=["Agent-管理"], dependencies=[Depends(get_current_user)])
 
@@ -60,13 +61,20 @@ async def list_agents(
     summary="创建 Agent",
     dependencies=[Depends(require_permissions(PermissionCode.AGENT_CREATE))],
 )
-# 创建 Agent：校验参数并入库，返回新创建的 Agent 信息
+# 创建 Agent：校验参数并入库，返回新创建的 Agent 信息（记录操作日志）
 async def create_agent(
     req: AgentCreate,
+    request: Request,
     current: CurrentUserDep,
+    db: DbDep,
     service: Annotated[AgentService, Depends(get_service)],
 ) -> ApiResponse[AgentOut]:
-    return success(data=await service.create(req, current.user_id), message="创建成功")
+    result = await service.create(req, current.user_id)
+    await OperationLogService(db).record(
+        user=current, module="agent", action="create", target_id=result.id,
+        detail={"code": result.code, "name": result.name}, request=request,
+    )
+    return success(data=result, message="创建成功")
 
 
 # ---- 详情 / 更新 / 删除（id 放最后）----
@@ -90,14 +98,27 @@ async def get_agent(
     summary="更新 Agent",
     dependencies=[Depends(require_permissions(PermissionCode.AGENT_UPDATE))],
 )
-# 更新 Agent：按 ID 修改 Agent 信息
+# 更新 Agent：按 ID 修改 Agent 信息（记录操作日志：含状态流转 / 配置变更）
 async def update_agent(
     agent_id: UUID,
     req: AgentUpdate,
+    request: Request,
+    current: CurrentUserDep,
+    db: DbDep,
     service: Annotated[AgentService, Depends(get_service)],
 ) -> ApiResponse[AgentOut]:
-    await service.update(agent_id, req)
-    return success(message="更新成功")
+    result, old_status = await service.update(agent_id, req)
+    await OperationLogService(db).record(
+        user=current, module="agent", action="update", target_id=agent_id,
+        detail={
+            "name": result.name,
+            "status_from": old_status,
+            "status_to": result.status.value,
+            "config_changed": req.config is not None,
+        },
+        request=request,
+    )
+    return success(data=result, message="更新成功")
 
 
 @router.delete(
@@ -106,12 +127,19 @@ async def update_agent(
     summary="删除 Agent",
     dependencies=[Depends(require_permissions(PermissionCode.AGENT_DELETE))],
 )
-# 删除 Agent：按 ID 删除
+# 删除 Agent：按 ID 删除（记录操作日志）
 async def delete_agent(
     agent_id: UUID,
+    request: Request,
+    current: CurrentUserDep,
+    db: DbDep,
     service: Annotated[AgentService, Depends(get_service)],
 ) -> ApiResponse[None]:
-    await service.delete(agent_id)
+    deleted = await service.delete(agent_id)
+    await OperationLogService(db).record(
+        user=current, module="agent", action="delete", target_id=agent_id,
+        detail={"code": deleted.code, "name": deleted.name}, request=request,
+    )
     return success(message="删除成功")
 
 
@@ -122,13 +150,21 @@ async def delete_agent(
     summary="发布 Agent",
     dependencies=[Depends(require_permissions(PermissionCode.AGENT_PUBLISH))],
 )
-# 发布 Agent：为当前草稿生成新版本并设为线上版本
+# 发布 Agent：为当前草稿生成新版本并设为线上版本（记录操作日志）
 async def publish_agent(
     agent_id: UUID,
     req: AgentPublish,
+    request: Request,
+    current: CurrentUserDep,
+    db: DbDep,
     service: Annotated[AgentService, Depends(get_service)],
 ) -> ApiResponse[AgentVersionOut]:
-    return success(data=await service.publish(agent_id, req), message="发布成功")
+    result = await service.publish(agent_id, req)
+    await OperationLogService(db).record(
+        user=current, module="agent", action="publish", target_id=agent_id,
+        detail={"version": result.version, "changelog": result.changelog}, request=request,
+    )
+    return success(data=result, message="发布成功")
 
 
 @router.get(
@@ -151,13 +187,22 @@ async def list_agent_versions(
     summary="切换 Agent 版本（回滚）",
     dependencies=[Depends(require_permissions(PermissionCode.AGENT_VERSION_SWITCH))],
 )
-# 切换 Agent 版本：回滚到指定历史版本
+# 切换 Agent 版本：回滚到指定历史版本（记录操作日志：含版本回滚 from → to）
 async def switch_agent_version(
     agent_id: UUID,
     req: AgentVersionSwitch,
+    request: Request,
+    current: CurrentUserDep,
+    db: DbDep,
     service: Annotated[AgentService, Depends(get_service)],
 ) -> ApiResponse[AgentOut]:
-    return success(data=await service.switch_version(agent_id, req), message="版本切换成功")
+    result, old_version = await service.switch_version(agent_id, req)
+    await OperationLogService(db).record(
+        user=current, module="agent", action="switchVersion", target_id=agent_id,
+        detail={"version_from": old_version, "version_to": result.current_version},
+        request=request,
+    )
+    return success(data=result, message="版本切换成功")
 
 
 @router.post(
@@ -166,11 +211,18 @@ async def switch_agent_version(
     summary="触发 Agent 运行",
     dependencies=[Depends(require_permissions(PermissionCode.AGENT_RUN))],
 )
-# 触发 Agent 运行：提交运行请求，返回运行任务信息
+# 触发 Agent 运行：提交运行请求，返回运行任务信息（记录操作日志：含实际调用模型）
 async def run_agent(
     agent_id: UUID,
     req: AgentRunRequest,
+    request: Request,
     current: CurrentUserDep,
+    db: DbDep,
     service: Annotated[AgentService, Depends(get_service)],
 ) -> ApiResponse[AgentRunOut]:
-    return success(data=await service.run(agent_id, req, current.user_id), message="运行已触发")
+    result = await service.run(agent_id, req, current.user_id)
+    await OperationLogService(db).record(
+        user=current, module="agent", action="run", target_id=agent_id,
+        detail={"model": result.model, "status": result.status}, request=request,
+    )
+    return success(data=result, message="运行已触发")

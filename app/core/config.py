@@ -101,6 +101,9 @@ class Settings(BaseSettings):
     ai_max_retries: int = 2
     # 对话最大历史轮数（保留最近 N 轮，用于上下文组装）
     ai_max_history_rounds: int = 10
+    # 流式对话是否向模型请求 token 用量（OpenAI 兼容网关需支持 stream_options.include_usage；
+    # 若网关不支持会返回 400，可在 .env 设 AI_STREAM_USAGE=false 关闭）
+    ai_stream_usage: bool = True
 
     # ---- 联网搜索（web_search 工具）----
     # 搜索服务 API Key（Tavily / 阿里云百炼 / 博查等，.env 注入，勿硬编码）
@@ -128,7 +131,9 @@ class Settings(BaseSettings):
     # 每次检索返回的 top-k 块数
     rag_top_k: int = 4
     # 相似度阈值（低于该分数的结果丢弃；0~1，越大越严格）
-    rag_score_threshold: float = 0.7
+    # 注意：文本 embedding 的余弦相似度普遍偏低（相关片段通常 0.25~0.6，无关 0.1~0.25），
+    # 设 0.7 会导致几乎永远 0 命中（表现为"没检索/检索不到"），故默认取 0.3，可按模型实测调整。
+    rag_score_threshold: float = 0.3
 
     # ---- 日志 ----
     log_level: str = "INFO"
