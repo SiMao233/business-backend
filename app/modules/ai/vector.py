@@ -123,9 +123,11 @@ async def delete_by_filter(**filters: str) -> None:
 async def search_chunks(
     query_vector: list[float], knowledge_base_ids: list[str], top_k: int
 ) -> list[dict]:
-    """检索相似块，返回按分数降序的 [{chunk_id, document_id, content, score}]。
+    """检索相似块，返回按分数降序的
+    [{chunk_id, document_id, knowledge_base_id, seq_no, content, score}]。
 
     仅返回分数 >= rag_score_threshold 的结果。
+    只透出 payload 已有的字段（不额外查库）：文档名等富化由 retrieval.py 负责。
     """
     settings = get_settings()
     client = get_qdrant_client()
@@ -148,6 +150,8 @@ async def search_chunks(
         {
             "chunk_id": hit.payload.get("chunk_id"),
             "document_id": hit.payload.get("document_id"),
+            "knowledge_base_id": hit.payload.get("knowledge_base_id"),
+            "seq_no": hit.payload.get("seq_no"),
             "content": hit.payload.get("content", ""),
             "score": hit.score,
         }

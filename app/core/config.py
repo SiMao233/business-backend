@@ -135,6 +135,11 @@ class Settings(BaseSettings):
     # 设 0.7 会导致几乎永远 0 命中（表现为"没检索/检索不到"），故默认取 0.3，可按模型实测调整。
     rag_score_threshold: float = 0.3
 
+    # ---- 用量统计 ----
+    # 业务时区：用于把 UTC 时间切成"自然日"（usage_date）后按天聚合；
+    # 仅用量统计模块读取，与 app_timezone（仅供容器 TZ）相互独立。
+    usage_timezone: str = "Asia/Shanghai"
+
     # ---- 日志 ----
     log_level: str = "INFO"
 

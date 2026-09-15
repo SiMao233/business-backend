@@ -13,6 +13,11 @@
 `thinking` 条目**不落库**，由 `build_timeline()` 在读时（或流式 done 时）派生。好处：
 零迁移、老消息立即获得时间线、切分规则改进后历史消息自动跟随。
 
+来源（`sources`）：知识库检索类动作步骤自带 `AiSourceOut` 列表（每个命中 chunk 一条）。
+与 `thinking` 相反，`sources` 是**落库快照**——写入时定格，文档之后改名/删除不影响历史消息
+（保留「模型当时看到的内容」），因此历史接口无需回查 MySQL。其 `index` 就是提示词与正文里 `[n]` 的 n，
+**在单次请求内全局唯一**（预检索块与工具返回块共用一个计数器，前端据此把正文角标换成可点击来源卡片）。
+
 ⚠️ 契约影响：`steps` 是「思考 + 动作」的混合时间线，因此
 - `steps.length` **不等于**动作数，统计动作要 `filter(kind != "thinking")`；
 - 渲染 thinking 必须同时取同消息的 `reasoning` 字段（`reasoning[start:end]`）。
@@ -34,13 +39,53 @@ class StepKind(StrEnum):
     TOOL = "tool"
 
 
+class SourceType(StrEnum):
+    """来源类型：当前仅知识库检索；`WEB` 为后续联网搜索预留。"""
+
+    KNOWLEDGE = "knowledge"
+    WEB = "web"
+
+
+class AiSourceOut(ApiOutModel):
+    """一次检索命中的**来源条目**（一个 chunk 一条，挂在对应动作步骤的 `sources` 上）。
+
+    与提示词编号的关系（前端做引用角标高亮的依据）：`index` 就是提示词与正文里 `[n]` 的 n，
+    **在单次请求内全局唯一**——预检索块与工具返回块共用一个计数器，不会各自从 1 重新开始，
+    因此正文里出现 `[3]` 时能唯一映射到某条来源。
+
+    存储差异（务必与 `thinking` 区分）：`sources` 是**落库快照**，不是读时派生，
+    文档改名/删除后历史消息仍显示当时的文档名。
+    """
+
+    index: int = Field(
+        description="1-based 引用编号，等于提示词与正文角标里的 [n]（单次请求内全局唯一）"
+    )
+    type: str = Field(
+        default=SourceType.KNOWLEDGE.value, description="来源类型，当前恒为 knowledge"
+    )
+    chunk_id: str | None = Field(default=None, description="切分块 ID（Qdrant payload 的 chunk_id）")
+    document_id: str | None = Field(default=None, description="来源文档 ID（sys_knowledge_document）")
+    document_name: str = Field(default="", description="来源文档名；文档已删除 / 查不到时为空串")
+    knowledge_base_id: str | None = Field(default=None, description="来源知识库 ID")
+    knowledge_base_name: str = Field(default="", description="来源知识库名；查不到时为空串")
+    seq_no: int | None = Field(default=None, description="该切分块在文档内的序号（从 1 开始）")
+    score: float | None = Field(default=None, description="向量检索相似度（已通过阈值过滤）")
+    file_id: str | None = Field(
+        default=None,
+        description=(
+            "源文件 ID，前端可拼 /file/preview/{fileId} 在线预览或 /file/{fileId}/download 下载"
+        ),
+    )
+    content: str = Field(default="", description="命中片段正文（已截断，避免消息体积膨胀）")
+
+
 class AiStepOut(ApiOutModel):
     """时间线中的一条：思考片段（thinking）或一次动作调用（retrieval / tool）。
 
     平铺超集：不同 `kind` 下有意义的字段不同，**前端必须按 `kind` 分支**：
     - `thinking`：只读 `start` / `end`（配合同消息的 `reasoning` 字段做 slice），其余为 null；
     - `retrieval` / `tool`：只读 `name` / `output` / `cost_ms` / `reasoning_offset`，
-      `start` / `end` 为 null。
+      知识库检索类还会带 `sources`；`start` / `end` 为 null。
     """
 
     step_id: str = Field(
@@ -62,6 +107,13 @@ class AiStepOut(ApiOutModel):
     reasoning_offset: int | None = Field(
         default=None,
         description="该动作被触发时已产出的推理字符数；thinking 条目为 null（老数据缺失按 0 处理）",
+    )
+    sources: list[AiSourceOut] | None = Field(
+        default=None,
+        description=(
+            "检索来源列表（每 chunk 一条）。仅知识库检索类动作有值；"
+            "无命中、非检索类工具或第二期及更早的历史数据为 null"
+        ),
     )
 
     # ---- thinking 专用 ----
@@ -176,6 +228,8 @@ def build_timeline(steps: list[dict] | None, reasoning: str | None) -> list[dict
                     "output": step.get("output"),
                     "cost_ms": step.get("cost_ms"),
                     "reasoning_offset": offset,
+                    # 来源是落库快照，原样透传（第二期及更早的数据没有该键 → None）
+                    "sources": step.get("sources"),
                 },
             )
         )

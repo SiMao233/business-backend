@@ -14,6 +14,7 @@ from app.modules.file.api import router as file_router
 from app.modules.iam.api import router as iam_router
 from app.modules.knowledge.api import router as knowledge_router
 from app.modules.system.api import router as system_router
+from app.modules.usage.api import router as usage_router
 
 # 按模块注册；后续模块若存在依赖关系，可按依赖顺序调整
 # 说明：organization 已并入 system 子模块，model 已并入 agent 子模块，由各自聚合入口统一挂载
@@ -24,6 +25,7 @@ MODULES: list[APIRouter] = [
     agent_router,
     ai_router,
     system_router,
+    usage_router,
 ]
 
 

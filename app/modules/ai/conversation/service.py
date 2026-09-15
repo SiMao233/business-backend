@@ -155,13 +155,15 @@ class ConversationService:
         thinking_ms: int | None = None,
         ttft_ms: int | None = None,
         steps: list[dict] | None = None,
-    ) -> None:
-        """落库 assistant 回复（会话记忆）。
+    ) -> AiMessage:
+        """落库 assistant 回复（会话记忆），返回落库后的消息对象。
 
         `steps` 为工具 / 检索步骤（snake_case dict 列表），落 JSON 列；
         调用方需保证已是可 JSON 序列化的结构（UUID 等需先转 str）。
+
+        返回消息对象供调用方取 `id` 关联用量明细（`ai_usage_record.message_id`）。
         """
-        await self.msg_repo.create(
+        return await self.msg_repo.create(
             AiMessage(
                 conversation_id=conversation_id,
                 role="assistant",

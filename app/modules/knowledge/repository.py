@@ -23,6 +23,14 @@ class KnowledgeBaseRepository(BaseRepository):
         result = await self.db.execute(stmt)
         return result.scalar_one_or_none()
 
+    # 按主键批量查询知识库（RAG 回查知识库名，避免逐条查询）
+    async def list_by_ids(self, knowledge_base_ids: list[UUID]) -> list[KnowledgeBase]:
+        if not knowledge_base_ids:
+            return []
+        stmt = select(KnowledgeBase).where(KnowledgeBase.id.in_(knowledge_base_ids))
+        result = await self.db.execute(stmt)
+        return list(result.scalars().all())
+
     # 根据业务编码查询（唯一性校验，可排除自身）
     async def get_by_code(self, code: str, exclude_id: UUID | None = None) -> KnowledgeBase | None:
         stmt = select(KnowledgeBase).where(KnowledgeBase.code == code)
@@ -81,6 +89,14 @@ class DocumentRepository(BaseRepository):
         stmt = select(KnowledgeDocument).where(KnowledgeDocument.id == document_id)
         result = await self.db.execute(stmt)
         return result.scalar_one_or_none()
+
+    # 按主键批量查询文档（RAG 来源回查文档名 / 源文件 ID，避免逐条查询）
+    async def list_by_ids(self, document_ids: list[UUID]) -> list[KnowledgeDocument]:
+        if not document_ids:
+            return []
+        stmt = select(KnowledgeDocument).where(KnowledgeDocument.id.in_(document_ids))
+        result = await self.db.execute(stmt)
+        return list(result.scalars().all())
 
     # 分页查询某知识库下的文档列表（按创建时间倒序）
     async def list_page(

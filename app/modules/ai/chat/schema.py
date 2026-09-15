@@ -5,7 +5,7 @@ from uuid import UUID
 from pydantic import Field, field_serializer
 
 from app.common.schema import ApiInModel, ApiOutModel
-from app.modules.ai.steps import AiStepOut, StepKind
+from app.modules.ai.steps import AiSourceOut, AiStepOut, StepKind
 
 
 class AiChatRequest(ApiInModel):
@@ -86,7 +86,10 @@ class AiStreamReasoningOut(AiStreamEventOut):
 
 
 class AiStreamToolOut(AiStreamEventOut):
-    """`tool` 事件：检索 / 工具调用过程，便于前端展示「正在检索知识库」等状态。"""
+    """`tool` 事件：检索 / 工具调用过程，便于前端展示「正在检索知识库」等状态。
+
+    `status=done` 且为知识库检索时带 `sources`，因此来源卡片无需等到 `done` 事件即可渲染。
+    """
 
     step_id: str = Field(default="", description="步骤唯一 ID（与历史 steps[].stepId 一致）")
     kind: str = Field(
@@ -97,6 +100,13 @@ class AiStreamToolOut(AiStreamEventOut):
     status: str = Field(description="状态：running（开始）/ done（结束）")
     output: str | None = Field(default=None, description="结果摘要（status=done 时，超长会截断）")
     cost_ms: int | None = Field(default=None, description="该步耗时（毫秒，仅 status=done 时有值）")
+    sources: list[AiSourceOut] | None = Field(
+        default=None,
+        description=(
+            "检索来源列表（仅 status=done 且为知识库检索时有值，每 chunk 一条；"
+            "index 与正文角标 [n] 对应）"
+        ),
+    )
 
 
 class AiStreamErrorOut(AiStreamEventOut):

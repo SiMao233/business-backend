@@ -1,5 +1,6 @@
 """模型管理 Pydantic Schema：请求 / 响应模型。"""
 
+from decimal import Decimal
 from uuid import UUID
 
 from pydantic import ConfigDict, Field, field_serializer
@@ -67,6 +68,12 @@ class ModelInstanceCreate(ApiInModel):
     code: str = Field(min_length=1, max_length=64, description="调用时模型标识")
     model_type: ModelType = Field(default=ModelType.CHAT, description="模型类型")
     max_tokens: int | None = Field(default=None, ge=1, description="上下文上限（token）")
+    input_price: Decimal | None = Field(
+        default=None, ge=0, description="输入单价（元 / 千 token，用于用量成本核算）"
+    )
+    output_price: Decimal | None = Field(
+        default=None, ge=0, description="输出单价（元 / 千 token，用于用量成本核算）"
+    )
     status: int = Field(default=1, ge=0, le=1, description="1启用 0禁用")
 
 
@@ -77,6 +84,12 @@ class ModelInstanceUpdate(ApiInModel):
     code: str | None = Field(default=None, min_length=1, max_length=64, description="调用时模型标识")
     model_type: ModelType | None = Field(default=None, description="模型类型")
     max_tokens: int | None = Field(default=None, ge=1, description="上下文上限（token）")
+    input_price: Decimal | None = Field(
+        default=None, ge=0, description="输入单价（元 / 千 token）"
+    )
+    output_price: Decimal | None = Field(
+        default=None, ge=0, description="输出单价（元 / 千 token）"
+    )
     status: int | None = Field(default=None, ge=0, le=1, description="1启用 0禁用")
 
 
@@ -92,6 +105,8 @@ class ModelInstanceOut(ApiOutModel):
     code: str
     model_type: str
     max_tokens: int | None = None
+    input_price: Decimal | None = Field(default=None, description="输入单价（元 / 千 token）")
+    output_price: Decimal | None = Field(default=None, description="输出单价（元 / 千 token）")
     status: int
     create_time: UtcDateTime
     update_time: UtcDateTime
@@ -100,6 +115,11 @@ class ModelInstanceOut(ApiOutModel):
     def serialize_id(self, value: UUID) -> str:
         """输出不带连字符的 32 位十六进制字符串。"""
         return value.hex
+
+    @field_serializer("input_price", "output_price")
+    def serialize_price(self, value: Decimal | None) -> str | None:
+        """金额输出为字符串，避免 JSON 浮点精度问题。"""
+        return None if value is None else format(value, "f")
 
 
 class ModelInstanceQuery(ApiInModel):

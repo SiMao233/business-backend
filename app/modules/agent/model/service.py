@@ -116,6 +116,8 @@ class ModelService:
             code=req.code,
             model_type=req.model_type.value,
             max_tokens=req.max_tokens,
+            input_price=req.input_price,
+            output_price=req.output_price,
             status=req.status,
         )
         return self._instance_out(await self.instance_repo.create(instance))
@@ -132,6 +134,10 @@ class ModelService:
             instance.model_type = req.model_type.value
         if req.max_tokens is not None:
             instance.max_tokens = req.max_tokens
+        if req.input_price is not None:
+            instance.input_price = req.input_price
+        if req.output_price is not None:
+            instance.output_price = req.output_price
         if req.status is not None:
             instance.status = req.status
         return self._instance_out(await self.instance_repo.update(instance))

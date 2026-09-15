@@ -26,6 +26,9 @@ from app.modules.system.permission.model import Permission
 from app.modules.system.role.model import Role
 from app.modules.system.user.model import User
 
+# 用量统计
+from app.modules.usage.model import AiUsageRecord
+
 __all__ = [
     "User",
     "Role",
@@ -43,4 +46,5 @@ __all__ = [
     "AgentVersion",
     "AiConversation",
     "AiMessage",
+    "AiUsageRecord",
 ]

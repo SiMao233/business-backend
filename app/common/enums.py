@@ -77,3 +77,28 @@ class DocumentStatus(BaseEnum):
     PARSING = "parsing"     # 处理中
     PARSED = "parsed"       # 已解析
     FAILED = "failed"       # 处理失败
+
+
+class UsageCallType(BaseEnum):
+    """用量记录对应的模型调用类型。"""
+
+    CHAT = "chat"             # 对话（纯 RAG / 普通对话）
+    TOOL = "tool"             # 工具（智能体）模式
+    EMBEDDING = "embedding"   # 向量化（第二期接入）
+
+
+class UsageDimension(BaseEnum):
+    """用量统计聚合维度。"""
+
+    USER = "user"                   # 按用户
+    AGENT = "agent"                 # 按 Agent
+    MODEL = "model"                 # 按模型实例
+    PROVIDER = "provider"           # 按模型供应商
+    ORGANIZATION = "organization"   # 按组织（取自 Agent.organization_id）
+
+
+class TrendGranularity(BaseEnum):
+    """用量趋势时间粒度。"""
+
+    DAY = "day"     # 按业务自然日
+    HOUR = "hour"   # 按小时（暂未支持）

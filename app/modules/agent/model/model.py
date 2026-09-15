@@ -5,9 +5,10 @@
 - ModelInstance（sys_model_instance）：供应商下的具体模型实例，Agent 通过 model_id 绑定。
 """
 
+from decimal import Decimal
 from uuid import UUID, uuid4
 
-from sqlalchemy import Boolean, ForeignKey, Integer, SmallInteger, String, Uuid
+from sqlalchemy import Boolean, ForeignKey, Integer, Numeric, SmallInteger, String, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base, TimestampMixin
@@ -73,5 +74,9 @@ class ModelInstance(TimestampMixin, Base):
 
     # 状态：1 启用 / 0 禁用
     status: Mapped[int] = mapped_column(SmallInteger, default=1, nullable=False)
+
+    # 单价（元 / 千 token；为空表示不计费），供用量统计核算成本
+    input_price: Mapped[Decimal | None] = mapped_column(Numeric(18, 6), nullable=True)
+    output_price: Mapped[Decimal | None] = mapped_column(Numeric(18, 6), nullable=True)
 
     provider = relationship("ModelProvider", back_populates="instances")

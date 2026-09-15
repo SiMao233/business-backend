@@ -31,6 +31,7 @@ from app.modules.ai.codes import PermissionCode as AiPermissionCode
 from app.modules.knowledge.codes import PermissionCode as KnowledgePermissionCode
 from app.modules.system.organization.codes import PermissionCode as OrganizationPermissionCode
 from app.modules.system.permission.codes import PermissionCode
+from app.modules.usage.codes import PermissionCode as UsagePermissionCode
 
 # 内置角色与初始超管
 BUILTIN_ROLE_CODE = "admin"
@@ -213,6 +214,30 @@ PERMISSION_TREE: list[dict] = [
                     _btn(AiPermissionCode.CONVERSATION_LIST, "会话列表"),
                     _btn(AiPermissionCode.CONVERSATION_CREATE, "创建会话"),
                     _btn(AiPermissionCode.CONVERSATION_DELETE, "删除会话"),
+                ],
+            },
+        ],
+    },
+    {
+        "name": "用量统计",
+        "code": "usage",
+        "type": 1,
+        "children": [
+            {
+                "name": "用量明细",
+                "code": "usage:record",
+                "type": 2,
+                "children": [
+                    _btn(UsagePermissionCode.USAGE_RECORD_LIST, "用量明细列表"),
+                ],
+            },
+            {
+                "name": "用量统计",
+                "code": "usage:stat",
+                "type": 2,
+                "children": [
+                    _btn(UsagePermissionCode.USAGE_STAT_VIEW, "查看用量统计"),
+                    _btn(UsagePermissionCode.USAGE_STAT_ALL, "查看全局用量"),
                 ],
             },
         ],

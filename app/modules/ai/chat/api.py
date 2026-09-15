@@ -19,8 +19,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.middleware.authentication import CurrentUserDep, get_current_user
 from app.middleware.permission import require_permissions
+from app.modules.ai.chat.runtime import ChatStreamContext
 from app.modules.ai.chat.schema import AiChatRequest
-from app.modules.ai.chat.service import AiChatService, ChatStreamContext, stream_chat
+from app.modules.ai.chat.service import AiChatService
+from app.modules.ai.chat.stream import stream_chat
 from app.modules.ai.codes import PermissionCode
 
 router = APIRouter(prefix="/chat", tags=["AI能力"], dependencies=[Depends(get_current_user)])
@@ -41,6 +43,8 @@ async def prepare_chat_stream(
     ctx = await AiChatService(db).prepare_chat(
         req.agent_id, req.input, current.user_id, req.session_id
     )
+    # 用量统计需要用户名快照：chat service 不感知 HTTP 中间件，故在此补填
+    ctx.username = current.username
     await db.close()
     return ctx
 
