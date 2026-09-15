@@ -30,8 +30,11 @@ def _redis_settings() -> RedisSettings:
 async def enqueue_job(function: str, *args, job_id: str | None = None) -> None:
     """入队 ARQ 任务（每次新建连接，入队后关闭）。
 
-    `job_id`：可选任务 ID。ARQ 对同 ID 任务幂等——队列中或执行中存在同 ID 任务时，
-    重复入队会被忽略，用于防止同一文档被重复入队（如重试接口被连点）。
+    ⚠️ `job_id` 慎用：ARQ 的重复判定是「job_key 或 result_key 存在」，而 result_key
+    的 TTL 是 WorkerSettings.keep_result（默认 1 小时）。因此传入固定 job_id 会让
+    **任务结束后 1 小时内的同 ID 入队被静默丢弃**（返回 None，不报错），
+    表现为「重试接口调了但任务没跑」。当前 process_document 一律不传 job_id，
+    其并发保护由任务内的 CAS 抢占（DocumentRepository.mark_parsing）承担。
     """
     redis = await create_pool(_redis_settings())
     try:

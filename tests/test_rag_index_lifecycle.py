@@ -23,6 +23,7 @@ import app.modules.ai.vector as vector_module
 import app.modules.knowledge.parser as parser_module
 from app.core.exceptions import BizError
 from app.modules.knowledge import service as knowledge_service
+from app.modules.knowledge.repository import DocumentRepository
 from app.modules.knowledge.service import (
     build_index_payload,
     chunk_point_id,
@@ -72,6 +73,38 @@ def test_build_index_payload_strict_length_mismatch() -> None:
     # 向量数少于切分数：必须显式报错，而不是静默截断丢数据
     with pytest.raises(BizError):
         build_index_payload(uuid4(), uuid4(), ["a", "b"], [[0.1]])
+
+
+# ---- DocumentRepository.mark_parsing（CAS 抢占判定） ----
+
+
+class _CapturingSession:
+    """捕获 UPDATE 语句并返回指定 rowcount 的会话替身。"""
+
+    def __init__(self, rowcount: int) -> None:
+        self.rowcount = rowcount
+        self.statement = None
+        self.committed = False
+
+    async def execute(self, statement):
+        self.statement = statement
+        return SimpleNamespace(rowcount=self.rowcount)
+
+    async def commit(self) -> None:
+        self.committed = True
+
+
+async def test_mark_parsing_rowcount_semantics() -> None:
+    # rowcount == 1 → 抢到处理权
+    db = _CapturingSession(rowcount=1)
+    assert await DocumentRepository(db).mark_parsing(uuid4()) is True
+    assert db.committed is True
+    # 语句必须是针对 sys_knowledge_document 的 UPDATE
+    assert db.statement is not None
+    assert "UPDATE sys_knowledge_document" in str(db.statement)
+
+    # rowcount == 0 → 已被其它任务抢占
+    assert await DocumentRepository(_CapturingSession(rowcount=0)).mark_parsing(uuid4()) is False
 
 
 # ---- embed_in_batches ----
@@ -131,9 +164,16 @@ class _FakeDocRepo:
     def __init__(self, db: object) -> None:
         self.statuses: list[str] = []
         self.doc: SimpleNamespace | None = None
+        # CAS 抢占结果：False 模拟"已有任务在处理该文档"
+        self.mark_parsing_result = True
+        self.mark_parsing_calls = 0
 
     async def get_by_id(self, document_id: UUID) -> SimpleNamespace | None:
         return self.doc
+
+    async def mark_parsing(self, document_id: UUID) -> bool:
+        self.mark_parsing_calls += 1
+        return self.mark_parsing_result
 
     async def update(self, doc: SimpleNamespace) -> SimpleNamespace:
         self.statuses.append(doc.status)
@@ -241,7 +281,9 @@ async def test_process_document_replaces_index_in_order_and_is_idempotent(
     result = await knowledge_service.process_document_task(str(doc_id))
 
     assert result == {"ok": True, "chunk_count": 3}
-    assert doc_repo.statuses == ["parsing", "parsed"]
+    # CAS 抢占成功，最终落库只有 parsed（parsing 由 CAS 以 Core UPDATE 写入）
+    assert doc_repo.mark_parsing_calls == 1
+    assert doc_repo.statuses == ["parsed"]
     assert doc.status == "parsed" and doc.chunk_count == 3
 
     # 阶段 3 顺序：清旧向量 → 清旧 chunk → 写新向量 → 写新 chunk
@@ -260,6 +302,34 @@ async def test_process_document_replaces_index_in_order_and_is_idempotent(
     second_records = next(r for name, r in chunk_repo.calls if name == "create_many")
     assert [p["id"] for p in second_points] == [p["id"] for p in first_points]
     assert [r.id for r in second_records] == [r.id for r in first_records]
+
+
+async def test_process_document_skips_when_cas_not_acquired(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """CAS 抢不到处理权（已有任务在跑）时必须直接跳过，且不做任何索引写入。
+
+    这取代了之前用 ARQ 固定 job_id 做去重的做法：那种方式会在任务结束后的
+    keep_result 窗口（默认 1 小时）内把重试入队静默丢弃，导致文档卡 pending。
+    """
+    doc_id, doc, kb = _make_doc()
+    doc_repo = _FakeDocRepo(object())
+    doc_repo.doc = doc
+    doc_repo.mark_parsing_result = False
+    kb_repo = _FakeKBRepo(object())
+    kb_repo.kb = kb
+    chunk_repo = _FakeChunkRepo(object())
+    calls: list = []
+    _install_fakes(monkeypatch, doc_repo, kb_repo, chunk_repo, calls, _FakeEmbeddings())
+
+    result = await knowledge_service.process_document_task(str(doc_id))
+
+    assert result == {"ok": True, "skipped": "already parsing"}
+    assert doc_repo.mark_parsing_calls == 1
+    # 未标记任何终态，也完全没碰旧索引
+    assert doc_repo.statuses == []
+    assert calls == []
+    assert chunk_repo.calls == []
 
 
 async def test_process_document_read_phase_failure_keeps_old_index(
@@ -282,7 +352,10 @@ async def test_process_document_read_phase_failure_keeps_old_index(
 
     assert result["ok"] is False
     assert doc.status == "failed"
-    assert doc.error_message is not None and doc.error_message.startswith("[embedding]")
+    # errorMessage 是面向用户的纯业务文案（不带阶段前缀）
+    assert doc.error_message == "embedding 服务不可用"
+    # 失败阶段只出现在任务返回值 / 日志里
+    assert result["stage"] == "embedding"
     # 没有任何清理/写入调用（旧索引未被破坏）
     assert not any(
         isinstance(c, tuple) and c[0] in {"delete_by_filter", "upsert_chunks"} for c in calls
@@ -312,7 +385,8 @@ async def test_process_document_cancelled_marks_failed(
 
     assert inner.cancelled() is True
     assert doc.status == "failed"
-    assert doc.error_message is not None and doc.error_message.startswith("[embedding]")
+    # CancelledError 的 str() 为空，必须落到兜底文案而非空串
+    assert doc.error_message == "任务被中断（可能超时或服务重启），请稍后重试"
     # 取消发生在只读计算阶段，旧索引未被破坏
     assert not any(
         isinstance(c, tuple) and c[0] in {"delete_by_filter", "upsert_chunks"} for c in calls

@@ -142,12 +142,12 @@ class KnowledgeService:
         )
         doc = await self.doc_repo.create(doc)
         # 入队后台向量化（失败不影响上传，任务内会标记 failed）
+        # 不传 job_id：ARQ 的 _job_id 去重窗口 = 执行期 + keep_result（默认 1 小时），
+        # 会静默丢弃“上次失败后立刻重试”的入队，并发保护改由任务的 CAS 抢占承担。
         from app.tasks.worker import enqueue_job
 
         try:
-            await enqueue_job(
-                "process_document", doc.id.hex, job_id=f"process_document:{doc.id.hex}"
-            )
+            await enqueue_job("process_document", doc.id.hex)
         except Exception as exc:  # noqa: BLE001 - 入队失败仅记录，不阻断上传
             logger.warning("文档入队失败 document_id={} err={}", doc.id, exc)
         return DocumentOut.model_validate(doc)
@@ -179,12 +179,11 @@ class KnowledgeService:
         doc.error_message = None
         doc.chunk_count = 0
         await self.doc_repo.update(doc)
+        # 不传 job_id（原因见 upload_document）：并发保护由任务内 CAS 抢占承担
         from app.tasks.worker import enqueue_job
 
         try:
-            await enqueue_job(
-                "process_document", doc.id.hex, job_id=f"process_document:{doc.id.hex}"
-            )
+            await enqueue_job("process_document", doc.id.hex)
         except Exception as exc:  # noqa: BLE001 - 入队失败仅记录，不阻断重试
             logger.warning("文档重试入队失败 document_id={} err={}", doc.id, exc)
         return DocumentOut.model_validate(doc)
@@ -350,7 +349,7 @@ async def process_document_task(document_id: str) -> dict:
     状态流转：pending → parsing → parsed / failed。
 
     三阶段索引生命周期（保证重新索引一致性）：
-    1. 抢占：status=parsing（重复任务被状态挡住）；
+    1. 抢占：CAS 置 status=parsing（并发任务被数据库层挡住，不依赖队列去重）；
     2. 只读计算：解析/切分/分批 embedding/维度校验/组装 payload——全程不碰旧索引，
        失败时旧索引完好，文档标 failed，重试即可；
     3. 替换：清旧向量 → 清旧 chunk → 写新向量 → 写新 chunk → 标 parsed。
@@ -370,8 +369,13 @@ async def process_document_task(document_id: str) -> dict:
         if not doc:
             return {"ok": False, "error": "文档不存在"}
 
+        # 阶段 1 抢占：CAS 置 parsing。抢不到说明已有任务在处理该文档（连点重试 /
+        # 重复入队），直接跳过——并发跑两个索引任务会撞 chunk 主键冲突并把文档误标 failed。
+        if not await doc_repo.mark_parsing(doc.id):
+            logger.info("文档已在处理中，跳过本次索引 document_id={}", document_id)
+            return {"ok": True, "skipped": "already parsing"}
+        # 同步内存对象（CAS 走 Core UPDATE，ORM 实例不会自动刷新）
         doc.status = DocumentStatus.PARSING.value
-        await doc_repo.update(doc)
         stage = "prepare"
         try:
             kb = await kb_repo.get_by_id(doc.knowledge_base_id)
@@ -421,17 +425,24 @@ async def process_document_task(document_id: str) -> dict:
             # ARQ job_timeout 会取消任务（CancelledError 是 BaseException，
             # except Exception 捕不到 → 文档会永久卡在 parsing 且无法重试）。
             # 标记 failed 的写库放在屏蔽取消的作用域内完成，随后恢复取消语义。
-            message = f"[{stage}] {exc}"[:500]
+            #
+            # 文案口径：error_message 是**面向用户的业务文案**（前端直接展示），
+            # 失败阶段（stage）只进日志与任务返回值，不污染该字段。
+            if isinstance(exc, asyncio.CancelledError):
+                # CancelledError 的 str() 为空，必须给兜底文案，否则 error_message 写成空串
+                message = "任务被中断（可能超时或服务重启），请稍后重试"
+            else:
+                message = str(exc) or "文档处理失败"
             with anyio.CancelScope(shield=True):
                 try:
                     doc.status = DocumentStatus.FAILED.value
-                    doc.error_message = message
+                    doc.error_message = message[:500]
                     await doc_repo.update(doc)
                 except Exception:  # noqa: BLE001 - 状态落库失败不能掩盖原始异常
                     logger.exception("文档失败状态落库失败 document_id={}", document_id)
             if isinstance(exc, asyncio.CancelledError):
-                logger.warning("文档处理被取消 document_id={}", document_id)
+                logger.warning("文档处理被取消 document_id={} stage={}", document_id, stage)
                 raise
-            logger.exception("文档处理失败 document_id={}", document_id)
-            return {"ok": False, "error": str(exc)}
+            logger.exception("文档处理失败 document_id={} stage={}", document_id, stage)
+            return {"ok": False, "error": str(exc), "stage": stage}
 

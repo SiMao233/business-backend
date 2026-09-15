@@ -3,9 +3,10 @@
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.common.enums import DocumentStatus
 from app.common.pagination import PageParams, PageResult, paginate
 from app.common.repository import BaseRepository
 from app.modules.knowledge.model import KnowledgeBase, KnowledgeChunk, KnowledgeDocument
@@ -125,6 +126,23 @@ class DocumentRepository(BaseRepository):
         stmt = select(KnowledgeDocument).where(KnowledgeDocument.id == doc.id)
         result = await self.db.execute(stmt)
         return result.scalar_one()
+
+    # 抢占文档处理权：仅当当前状态不是 parsing 时置为 parsing，返回是否抢占成功
+    # 用于后台索引任务的并发保护（CAS，不依赖任务队列的去重语义）：
+    # 抢不到说明已有任务在处理该文档，调用方应直接跳过，避免并发重复索引。
+    async def mark_parsing(self, document_id: UUID) -> bool:
+        result = await self.db.execute(
+            update(KnowledgeDocument)
+            .where(
+                KnowledgeDocument.id == document_id,
+                KnowledgeDocument.status != DocumentStatus.PARSING.value,
+            )
+            .values(status=DocumentStatus.PARSING.value)
+            # 关闭 ORM 同步：调用方自行维护内存对象，避免额外 SELECT / 对象过期
+            .execution_options(synchronize_session=False)
+        )
+        await self.db.commit()
+        return result.rowcount == 1
 
     # 更新文档：提交变更并刷新，返回更新后的对象
     async def update(self, doc: KnowledgeDocument) -> KnowledgeDocument:
