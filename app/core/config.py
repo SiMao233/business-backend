@@ -126,6 +126,12 @@ class Settings(BaseSettings):
     # 切分块大小（字符）与重叠
     chunk_size: int = 800
     chunk_overlap: int = 120
+    # embedding 批量向化的单批条数（OpenAI 兼容接口对单次 input 数组有上限，
+    # 大文档一次性提交会 400/413，故顺序分批）
+    embedding_batch_size: int = 16
+    # 文档处于 parsing 状态超过该分钟数视为僵尸（worker 崩溃/被杀），
+    # 允许通过重试接口重新入队，否则文档会永久卡死无法恢复
+    index_stale_minutes: int = 15
 
     # ---- RAG 检索 ----
     # 每次检索返回的 top-k 块数

@@ -13,7 +13,7 @@ async def test_root_health(client: AsyncClient) -> None:
     resp = await client.get("/health")
     assert resp.status_code == 200
     body = resp.json()
-    assert body["code"] == 0
+    assert body["code"] == 200
     assert body["data"]["status"] == "ok"
 
 
@@ -22,7 +22,7 @@ async def test_system_health(client: AsyncClient) -> None:
     resp = await client.get("/api/v1/system/health")
     assert resp.status_code == 200
     body = resp.json()
-    assert body["code"] == 0
+    assert body["code"] == 200
     assert body["data"]["service"] == "business-backend"
 
 
@@ -31,6 +31,6 @@ async def test_system_ready(client: AsyncClient) -> None:
     resp = await client.get("/api/v1/system/ready")
     assert resp.status_code == 200
     body = resp.json()
-    assert body["code"] == 0
+    assert body["code"] == 200
     assert set(body["data"]["checks"].keys()) == {"database", "redis"}
     assert body["data"]["status"] in {"ok", "degraded"}

@@ -185,13 +185,10 @@ class ChunkRepository(BaseRepository):
 
     # 删除某文档的全部切分块（重新索引 / 删除文档时用）
     async def delete_by_document(self, document_id: UUID) -> None:
-        stmt = select(KnowledgeChunk.id).where(KnowledgeChunk.document_id == document_id)
-        ids = list((await self.db.execute(stmt)).scalars().all())
-        if ids:
-            await self.db.execute(
-                KnowledgeChunk.__table__.delete().where(KnowledgeChunk.id.in_(ids))
-            )
-            await self.db.commit()
+        await self.db.execute(
+            KnowledgeChunk.__table__.delete().where(KnowledgeChunk.document_id == document_id)
+        )
+        await self.db.commit()
 
     # 删除某知识库的全部切分块（删除知识库时用）
     async def delete_by_knowledge_base(self, knowledge_base_id: UUID) -> None:

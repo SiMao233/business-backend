@@ -4,14 +4,18 @@
 文档处理流水线：上传 → 入队 ARQ → 解析 → 切分 → embedding → 写 Qdrant → 双写 MySQL chunk。
 """
 
-from uuid import UUID, uuid4
+import asyncio
+from datetime import UTC, datetime, timedelta
+from uuid import UUID, uuid5
 
+import anyio
 from fastapi import UploadFile
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.common.enums import DocumentStatus, FileBizType, ModelType
 from app.common.pagination import PageParams, PageResult
+from app.core.config import get_settings
 from app.core.exceptions import BizError, NotFoundError, ValidateError
 from app.modules.agent.model.repository import ModelInstanceRepository
 from app.modules.file.service import FileService
@@ -141,7 +145,9 @@ class KnowledgeService:
         from app.tasks.worker import enqueue_job
 
         try:
-            await enqueue_job("process_document", doc.id.hex)
+            await enqueue_job(
+                "process_document", doc.id.hex, job_id=f"process_document:{doc.id.hex}"
+            )
         except Exception as exc:  # noqa: BLE001 - 入队失败仅记录，不阻断上传
             logger.warning("文档入队失败 document_id={} err={}", doc.id, exc)
         return DocumentOut.model_validate(doc)
@@ -158,15 +164,16 @@ class KnowledgeService:
         await self.doc_repo.delete(doc)
         return doc
 
-    # 重试文档向量化：复用原文件重新入队（仅 failed / pending 可重试）
+    # 重试文档向量化：复用原文件重新入队（failed / pending 可重试；
+    # parsing 超过 index_stale_minutes 视为僵尸任务，同样允许重试）
     async def reprocess_document(self, document_id: UUID) -> DocumentOut:
         doc = await self.doc_repo.get_by_id(document_id)
         if not doc:
             raise NotFoundError("文档不存在")
-        if doc.status == DocumentStatus.PARSING.value:
-            raise BizError("文档正在处理中，请勿重复操作")
         if doc.status == DocumentStatus.PARSED.value:
             raise BizError("文档已处理完成，无需重试")
+        if doc.status == DocumentStatus.PARSING.value and not self._is_stale_parsing(doc):
+            raise BizError("文档正在处理中，请勿重复操作")
         # 重置状态并重新入队（复用原文件，不重新上传）
         doc.status = DocumentStatus.PENDING.value
         doc.error_message = None
@@ -175,10 +182,28 @@ class KnowledgeService:
         from app.tasks.worker import enqueue_job
 
         try:
-            await enqueue_job("process_document", doc.id.hex)
+            await enqueue_job(
+                "process_document", doc.id.hex, job_id=f"process_document:{doc.id.hex}"
+            )
         except Exception as exc:  # noqa: BLE001 - 入队失败仅记录，不阻断重试
             logger.warning("文档重试入队失败 document_id={} err={}", doc.id, exc)
         return DocumentOut.model_validate(doc)
+
+    @staticmethod
+    def _is_stale_parsing(doc: KnowledgeDocument) -> bool:
+        """parsing 状态超过 index_stale_minutes 视为僵尸任务（worker 崩溃/被杀）。
+
+        ARQ 任务超时/取消已被任务内兜底标记 failed，此判定覆盖的是
+        worker 进程被强杀（SIGKILL）等无法执行兜底逻辑的场景，
+        否则文档会永久卡在 parsing 且无法通过任何 API 恢复。
+        """
+        updated = doc.update_time
+        if updated is None:
+            return True
+        if updated.tzinfo is None:  # MySQL 读回为 naive，按 UTC 还原（存取全链路 UTC）
+            updated = updated.replace(tzinfo=UTC)
+        age = datetime.now(UTC) - updated
+        return age > timedelta(minutes=get_settings().index_stale_minutes)
 
     # 分页查询某知识库的文档列表（knowledge_base_id 从查询入参 body 传入）
     async def list_documents(self, query: DocumentQuery) -> PageResult[DocumentOut]:
@@ -241,11 +266,95 @@ class KnowledgeService:
             raise BizError("绑定模型实例已停用")
 
 
+# Chunk 确定性 ID 命名空间（固定值，保证跨进程/重启后 ID 稳定）
+_CHUNK_ID_NAMESPACE = UUID("5f3a9c1e-7b2d-4e8f-9a6c-1d0b4e7f2a83")
+
+
+def chunk_point_id(document_id: UUID, seq_no: int) -> UUID:
+    """生成 chunk 的确定性 ID（同时作为 Qdrant point ID）。
+
+    由 (document_id, seq_no) 唯一决定：同一文档同一序号重复索引得到相同 ID——
+    MySQL 主键天然幂等（重复插入报 PK 冲突而非静默新增重复行），
+    Qdrant 同 ID upsert 即覆盖。重复执行索引任务不会产生重复数据。
+    """
+    return uuid5(_CHUNK_ID_NAMESPACE, f"kbchunk:{document_id.hex}:{seq_no}")
+
+
+def build_index_payload(
+    document_id: UUID,
+    knowledge_base_id: UUID,
+    chunks: list[str],
+    vectors: list[list[float]],
+) -> tuple[list[dict], list[KnowledgeChunk]]:
+    """把切分文本与向量组装为 Qdrant points 与 MySQL chunk 记录（纯函数）。
+
+    - point / chunk ID 用 chunk_point_id() 确定性生成（幂等根基）；
+    - chunks 与 vectors 数量必须一致（strict 校验，杜绝静默截断丢数据）。
+    payload 约定与存量数据一致：ID 均为 .hex（无连字符）。
+    """
+    if len(chunks) != len(vectors):
+        raise BizError(
+            f"向量数量与切分块数量不一致 chunks={len(chunks)} vectors={len(vectors)}"
+        )
+    points: list[dict] = []
+    chunk_records: list[KnowledgeChunk] = []
+    for i, (chunk_text, vec) in enumerate(zip(chunks, vectors, strict=True), start=1):
+        chunk_id = chunk_point_id(document_id, i)
+        point_id = str(chunk_id)
+        points.append(
+            {
+                "id": point_id,
+                "vector": vec,
+                "payload": {
+                    "knowledge_base_id": knowledge_base_id.hex,
+                    "document_id": document_id.hex,
+                    "chunk_id": chunk_id.hex,
+                    "seq_no": i,
+                    "content": chunk_text,
+                },
+            }
+        )
+        chunk_records.append(
+            KnowledgeChunk(
+                id=chunk_id,
+                document_id=document_id,
+                knowledge_base_id=knowledge_base_id,
+                seq_no=i,
+                content=chunk_text,
+                token_count=max(1, len(chunk_text) // 2),  # 粗略估算（中文为主）
+                vector_id=point_id,
+                char_count=len(chunk_text),
+            )
+        )
+    return points, chunk_records
+
+
+async def embed_in_batches(embeddings: object, chunks: list[str]) -> list[list[float]]:
+    """分批向量化（顺序执行，避免单次请求超过兼容接口的 input 数组上限）。
+
+    上游（阿里云百炼等）对单次 embeddings 调用的 input 条数有硬上限，
+    大文档一次性提交会 400/413，故按 embedding_batch_size 顺序分批。
+    """
+    batch_size = max(1, get_settings().embedding_batch_size)
+    vectors: list[list[float]] = []
+    for start in range(0, len(chunks), batch_size):
+        batch = chunks[start : start + batch_size]
+        vectors.extend(await embeddings.aembed_documents(batch))  # type: ignore[attr-defined]
+    return vectors
+
+
 async def process_document_task(document_id: str) -> dict:
-    """ARQ 后台任务：解析 → 切分 → embedding → 写 Qdrant → 双写 MySQL chunk。
+    """ARQ 后台任务：解析 → 切分 → embedding → 清旧索引 → 写新索引。
 
     独立 AsyncSessionLocal 会话（worker 进程内执行，不依赖请求上下文）。
     状态流转：pending → parsing → parsed / failed。
+
+    三阶段索引生命周期（保证重新索引一致性）：
+    1. 抢占：status=parsing（重复任务被状态挡住）；
+    2. 只读计算：解析/切分/分批 embedding/维度校验/组装 payload——全程不碰旧索引，
+       失败时旧索引完好，文档标 failed，重试即可；
+    3. 替换：清旧向量 → 清旧 chunk → 写新向量 → 写新 chunk → 标 parsed。
+       chunk/point ID 确定性生成，重复执行天然幂等。
     """
     from app.core.database import AsyncSessionLocal
     from app.modules.ai import vector
@@ -263,11 +372,13 @@ async def process_document_task(document_id: str) -> dict:
 
         doc.status = DocumentStatus.PARSING.value
         await doc_repo.update(doc)
+        stage = "prepare"
         try:
             kb = await kb_repo.get_by_id(doc.knowledge_base_id)
             if not kb:
                 raise BizError("知识库不存在")
 
+            # ---- 阶段 2：只读计算（失败不影响旧索引）----
             # 读取文件内容（本地路径或字节）
             content = await file_service.get_content(doc.file_id)
             if content.data is not None:
@@ -277,6 +388,7 @@ async def process_document_task(document_id: str) -> dict:
             else:
                 raise BizError("文件内容不可读")
 
+            stage = "parse"
             # 解析 + 切分
             ext = doc.name.rsplit(".", 1)[-1].lower() if "." in doc.name else None
             text = parse_document(data, ext)
@@ -284,42 +396,19 @@ async def process_document_task(document_id: str) -> dict:
             if not chunks:
                 raise BizError("文档内容为空或无法切分")
 
-            # embedding（读知识库绑定的 embedding 模型实例）
+            stage = "embedding"
+            # embedding（读知识库绑定的 embedding 模型实例，分批提交）
             embeddings = await vector.build_embeddings(db, kb.embedding_model_id)
-            vectors = await embeddings.aembed_documents(chunks)
-            dim = len(vectors[0])
-            await vector.ensure_collection(dim)
+            vectors = await embed_in_batches(embeddings, chunks)
+            await vector.ensure_collection(len(vectors[0]))
+            points, chunk_records = build_index_payload(
+                doc.id, doc.knowledge_base_id, chunks, vectors
+            )
 
-            # 写 Qdrant + 双写 MySQL chunk
-            points: list[dict] = []
-            chunk_records: list[KnowledgeChunk] = []
-            for i, (chunk_text, vec) in enumerate(zip(chunks, vectors, strict=False), start=1):
-                chunk_id = uuid4()
-                point_id = str(chunk_id)
-                points.append(
-                    {
-                        "id": point_id,
-                        "vector": vec,
-                        "payload": {
-                            "knowledge_base_id": doc.knowledge_base_id.hex,
-                            "document_id": doc.id.hex,
-                            "chunk_id": chunk_id.hex,
-                            "seq_no": i,
-                            "content": chunk_text,
-                        },
-                    }
-                )
-                chunk_records.append(
-                    KnowledgeChunk(
-                        document_id=doc.id,
-                        knowledge_base_id=doc.knowledge_base_id,
-                        seq_no=i,
-                        content=chunk_text,
-                        token_count=max(1, len(chunk_text) // 2),  # 粗略估算（中文为主）
-                        vector_id=point_id,
-                        char_count=len(chunk_text),
-                    )
-                )
+            # ---- 阶段 3：替换旧索引（先清后写，确定性 ID 保证幂等）----
+            stage = "index"
+            await vector.delete_by_filter(document_id=doc.id.hex)
+            await chunk_repo.delete_by_document(doc.id)
             await vector.upsert_chunks(points)
             await chunk_repo.create_many(chunk_records)
 
@@ -328,10 +417,21 @@ async def process_document_task(document_id: str) -> dict:
             await doc_repo.update(doc)
             logger.info("文档处理完成 document_id={} chunks={}", doc.id, len(chunk_records))
             return {"ok": True, "chunk_count": len(chunk_records)}
-        except Exception as exc:  # noqa: BLE001 - 任务内兜底，标记 failed
+        except BaseException as exc:  # noqa: BLE001 - 任务内兜底标记 failed（含取消）
+            # ARQ job_timeout 会取消任务（CancelledError 是 BaseException，
+            # except Exception 捕不到 → 文档会永久卡在 parsing 且无法重试）。
+            # 标记 failed 的写库放在屏蔽取消的作用域内完成，随后恢复取消语义。
+            message = f"[{stage}] {exc}"[:500]
+            with anyio.CancelScope(shield=True):
+                try:
+                    doc.status = DocumentStatus.FAILED.value
+                    doc.error_message = message
+                    await doc_repo.update(doc)
+                except Exception:  # noqa: BLE001 - 状态落库失败不能掩盖原始异常
+                    logger.exception("文档失败状态落库失败 document_id={}", document_id)
+            if isinstance(exc, asyncio.CancelledError):
+                logger.warning("文档处理被取消 document_id={}", document_id)
+                raise
             logger.exception("文档处理失败 document_id={}", document_id)
-            doc.status = DocumentStatus.FAILED.value
-            doc.error_message = str(exc)[:500]
-            await doc_repo.update(doc)
             return {"ok": False, "error": str(exc)}
 

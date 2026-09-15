@@ -27,11 +27,15 @@ def _redis_settings() -> RedisSettings:
     )
 
 
-async def enqueue_job(function: str, *args) -> None:
-    """入队 ARQ 任务（每次新建连接，入队后关闭）。"""
+async def enqueue_job(function: str, *args, job_id: str | None = None) -> None:
+    """入队 ARQ 任务（每次新建连接，入队后关闭）。
+
+    `job_id`：可选任务 ID。ARQ 对同 ID 任务幂等——队列中或执行中存在同 ID 任务时，
+    重复入队会被忽略，用于防止同一文档被重复入队（如重试接口被连点）。
+    """
     redis = await create_pool(_redis_settings())
     try:
-        await redis.enqueue_job(function, *args)
+        await redis.enqueue_job(function, *args, _job_id=job_id)
     finally:
         await redis.aclose()
 

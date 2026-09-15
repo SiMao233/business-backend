@@ -62,7 +62,11 @@ def get_qdrant_client() -> AsyncQdrantClient:
 
 
 async def ensure_collection(dim: int) -> None:
-    """确保 collection 存在；不存在则按 embedding 维度创建（余弦距离）。"""
+    """确保 collection 存在；不存在则按 embedding 维度创建（余弦距离）。
+
+    已存在时校验维度：单 collection 设计下所有知识库必须共用同一 embedding 维度，
+    维度不符说明绑定了不同维度的模型，直接报业务错误（而非让 upsert 报底层错误）。
+    """
     settings = get_settings()
     client = get_qdrant_client()
     collections = await client.get_collections()
@@ -75,23 +79,35 @@ async def ensure_collection(dim: int) -> None:
             ),
         )
         logger.info("Qdrant collection created: {} dim={}", settings.qdrant_collection, dim)
+        return
+    # 已存在：校验维度一致（防止换 embedding 模型后写入必然失败）
+    info = await client.get_collection(settings.qdrant_collection)
+    existing_dim = info.config.params.vectors.size
+    if existing_dim != dim:
+        raise BizError(
+            f"向量维度不匹配：collection 已存在维度为 {existing_dim}，"
+            f"当前 embedding 模型维度为 {dim}，请更换模型或重建索引"
+        )
 
 
 async def upsert_chunks(points: list[dict]) -> None:
-    """批量写入向量点。
+    """批量写入向量点（按 embedding_batch_size 分批，避免单次请求超限）。
 
     point 结构：{"id": str, "vector": list[float], "payload": dict}
     payload 约定：knowledge_base_id / document_id / chunk_id / seq_no / content
     """
     settings = get_settings()
     client = get_qdrant_client()
-    await client.upsert(
-        collection_name=settings.qdrant_collection,
-        points=[
-            qdrant_models.PointStruct(id=p["id"], vector=p["vector"], payload=p["payload"])
-            for p in points
-        ],
-    )
+    batch_size = max(1, settings.embedding_batch_size)
+    for start in range(0, len(points), batch_size):
+        batch = points[start : start + batch_size]
+        await client.upsert(
+            collection_name=settings.qdrant_collection,
+            points=[
+                qdrant_models.PointStruct(id=p["id"], vector=p["vector"], payload=p["payload"])
+                for p in batch
+            ],
+        )
 
 
 async def delete_by_filter(**filters: str) -> None:
