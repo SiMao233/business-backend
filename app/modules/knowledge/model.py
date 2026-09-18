@@ -116,6 +116,15 @@ class KnowledgeChunk(TimestampMixin, Base):
     # 切分文本内容
     content: Mapped[str] = mapped_column(Text, nullable=False)
 
+    # 章节路径（结构感知切分产出，如「员工手册 > 二、考勤」；无标题结构时为 NULL）
+    section_path: Mapped[str | None] = mapped_column(String(512), nullable=True)
+
+    # 来源页码（PDF 等分页文档；跨页块取起始页）
+    page_no: Mapped[int | None] = mapped_column(Integer, nullable=True)
+
+    # 块类型（ChunkType：text / table / mixed）
+    chunk_type: Mapped[str] = mapped_column(String(16), nullable=False, default="text")
+
     # 预估 token 数（可选，向量化后回填）
     token_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
 

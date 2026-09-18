@@ -23,6 +23,7 @@ import app.modules.ai.vector as vector_module
 import app.modules.knowledge.parser as parser_module
 from app.core.exceptions import BizError
 from app.modules.knowledge import service as knowledge_service
+from app.modules.knowledge.parser import ChunkDraft, ParsedBlock
 from app.modules.knowledge.repository import DocumentRepository
 from app.modules.knowledge.service import (
     build_index_payload,
@@ -49,30 +50,43 @@ def test_chunk_point_id_differs_by_document_and_seq() -> None:
 
 def test_build_index_payload_shapes_and_hex_payload() -> None:
     doc_id, kb_id = uuid4(), uuid4()
-    chunks = ["第一块", "第二块", "第三块"]
+    drafts = [
+        ChunkDraft(content="第一块", section_path="手册 > 一、总则"),
+        ChunkDraft(content="第二块", page_no=2, chunk_type="table"),
+        ChunkDraft(content="第三块"),
+    ]
     vectors = [[0.1], [0.2], [0.3]]
-    points, records = build_index_payload(doc_id, kb_id, chunks, vectors)
+    points, records = build_index_payload(doc_id, kb_id, drafts, vectors)
     assert len(points) == len(records) == 3
     for i, (point, record) in enumerate(zip(points, records, strict=True), start=1):
+        draft = drafts[i - 1]
         expected = chunk_point_id(doc_id, i)
         assert point["id"] == str(expected)
         assert point["payload"]["chunk_id"] == expected.hex
         assert point["payload"]["document_id"] == doc_id.hex
         assert point["payload"]["knowledge_base_id"] == kb_id.hex
         assert point["payload"]["seq_no"] == i
-        assert point["payload"]["content"] == chunks[i - 1]
+        assert point["payload"]["content"] == draft.content
+        # 结构元数据同时进 payload 与 MySQL
+        assert point["payload"]["section_path"] == draft.section_path
+        assert point["payload"]["page_no"] == draft.page_no
+        assert point["payload"]["chunk_type"] == draft.chunk_type
         assert record.id == expected
         assert record.document_id == doc_id
         assert record.knowledge_base_id == kb_id
         assert record.seq_no == i
         assert record.vector_id == str(expected)
-        assert record.char_count == len(chunks[i - 1])
+        assert record.char_count == len(draft.content)
+        assert record.section_path == draft.section_path
+        assert record.page_no == draft.page_no
+        assert record.chunk_type == draft.chunk_type
 
 
 def test_build_index_payload_strict_length_mismatch() -> None:
     # 向量数少于切分数：必须显式报错，而不是静默截断丢数据
+    drafts = [ChunkDraft(content="a"), ChunkDraft(content="b")]
     with pytest.raises(BizError):
-        build_index_payload(uuid4(), uuid4(), ["a", "b"], [[0.1]])
+        build_index_payload(uuid4(), uuid4(), drafts, [[0.1]])
 
 
 # ---- DocumentRepository.mark_parsing（CAS 抢占判定） ----
@@ -253,9 +267,19 @@ def _install_fakes(
     monkeypatch.setattr(vector_module, "ensure_collection", fake_ensure_collection)
     monkeypatch.setattr(vector_module, "delete_by_filter", fake_delete_by_filter)
     monkeypatch.setattr(vector_module, "upsert_chunks", fake_upsert_chunks)
-    monkeypatch.setattr(parser_module, "parse_document", lambda data, ext: "解析后的文本")
     monkeypatch.setattr(
-        parser_module, "split_text", lambda text: ["第一块内容", "第二块内容", "第三块内容"]
+        parser_module,
+        "parse_document",
+        lambda data, ext: [ParsedBlock(text="解析后的文本")],
+    )
+    monkeypatch.setattr(
+        parser_module,
+        "split_blocks",
+        lambda blocks: [
+            ChunkDraft(content="第一块内容"),
+            ChunkDraft(content="第二块内容"),
+            ChunkDraft(content="第三块内容"),
+        ],
     )
     # 任务内 `from app.core.database import AsyncSessionLocal` 在调用时才绑定，
     # 因此 patch 模块属性即可生效

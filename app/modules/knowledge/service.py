@@ -20,6 +20,7 @@ from app.core.exceptions import BizError, NotFoundError, ValidateError
 from app.modules.agent.model.repository import ModelInstanceRepository
 from app.modules.file.service import FileService
 from app.modules.knowledge.model import KnowledgeBase, KnowledgeChunk, KnowledgeDocument
+from app.modules.knowledge.parser import ChunkDraft
 from app.modules.knowledge.repository import (
     ChunkRepository,
     DocumentRepository,
@@ -282,22 +283,22 @@ def chunk_point_id(document_id: UUID, seq_no: int) -> UUID:
 def build_index_payload(
     document_id: UUID,
     knowledge_base_id: UUID,
-    chunks: list[str],
+    drafts: list[ChunkDraft],
     vectors: list[list[float]],
 ) -> tuple[list[dict], list[KnowledgeChunk]]:
-    """把切分文本与向量组装为 Qdrant points 与 MySQL chunk 记录（纯函数）。
+    """把切分草稿与向量组装为 Qdrant points 与 MySQL chunk 记录（纯函数）。
 
     - point / chunk ID 用 chunk_point_id() 确定性生成（幂等根基）；
-    - chunks 与 vectors 数量必须一致（strict 校验，杜绝静默截断丢数据）。
+    - drafts 与 vectors 数量必须一致（strict 校验，杜绝静默截断丢数据）；
+    - 结构元数据（section_path / page_no / chunk_type）**同时**写入 Qdrant payload
+      与 MySQL：payload 便于按页 / 类型过滤与排查，MySQL 便于浏览与审计。
     payload 约定与存量数据一致：ID 均为 .hex（无连字符）。
     """
-    if len(chunks) != len(vectors):
-        raise BizError(
-            f"向量数量与切分块数量不一致 chunks={len(chunks)} vectors={len(vectors)}"
-        )
+    if len(drafts) != len(vectors):
+        raise BizError(f"向量数量与切分块数量不一致 chunks={len(drafts)} vectors={len(vectors)}")
     points: list[dict] = []
     chunk_records: list[KnowledgeChunk] = []
-    for i, (chunk_text, vec) in enumerate(zip(chunks, vectors, strict=True), start=1):
+    for i, (draft, vec) in enumerate(zip(drafts, vectors, strict=True), start=1):
         chunk_id = chunk_point_id(document_id, i)
         point_id = str(chunk_id)
         points.append(
@@ -309,7 +310,10 @@ def build_index_payload(
                     "document_id": document_id.hex,
                     "chunk_id": chunk_id.hex,
                     "seq_no": i,
-                    "content": chunk_text,
+                    "content": draft.content,
+                    "section_path": draft.section_path,
+                    "page_no": draft.page_no,
+                    "chunk_type": draft.chunk_type,
                 },
             }
         )
@@ -319,10 +323,13 @@ def build_index_payload(
                 document_id=document_id,
                 knowledge_base_id=knowledge_base_id,
                 seq_no=i,
-                content=chunk_text,
-                token_count=max(1, len(chunk_text) // 2),  # 粗略估算（中文为主）
+                content=draft.content,
+                token_count=max(1, len(draft.content) // 2),  # 粗略估算（中文为主）
                 vector_id=point_id,
-                char_count=len(chunk_text),
+                char_count=len(draft.content),
+                section_path=draft.section_path,
+                page_no=draft.page_no,
+                chunk_type=draft.chunk_type,
             )
         )
     return points, chunk_records
@@ -357,7 +364,7 @@ async def process_document_task(document_id: str) -> dict:
     """
     from app.core.database import AsyncSessionLocal
     from app.modules.ai import vector
-    from app.modules.knowledge.parser import parse_document, split_text
+    from app.modules.knowledge.parser import parse_document, split_blocks
 
     async with AsyncSessionLocal() as db:
         doc_repo = DocumentRepository(db)
@@ -393,20 +400,20 @@ async def process_document_task(document_id: str) -> dict:
                 raise BizError("文件内容不可读")
 
             stage = "parse"
-            # 解析 + 切分
+            # 解析 + 结构感知切分（标题 / 列表 / 表格 / 页码结构在此保留）
             ext = doc.name.rsplit(".", 1)[-1].lower() if "." in doc.name else None
-            text = parse_document(data, ext)
-            chunks = split_text(text)
-            if not chunks:
+            drafts = split_blocks(parse_document(data, ext))
+            if not drafts:
                 raise BizError("文档内容为空或无法切分")
 
             stage = "embedding"
             # embedding（读知识库绑定的 embedding 模型实例，分批提交）
+            # 嵌入文本带章节路径前缀：切片后丢失的标题上下文在此补回，content 保持干净
             embeddings = await vector.build_embeddings(db, kb.embedding_model_id)
-            vectors = await embed_in_batches(embeddings, chunks)
+            vectors = await embed_in_batches(embeddings, [d.embedding_text for d in drafts])
             await vector.ensure_collection(len(vectors[0]))
             points, chunk_records = build_index_payload(
-                doc.id, doc.knowledge_base_id, chunks, vectors
+                doc.id, doc.knowledge_base_id, drafts, vectors
             )
 
             # ---- 阶段 3：替换旧索引（先清后写，确定性 ID 保证幂等）----

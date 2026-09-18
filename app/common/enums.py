@@ -79,6 +79,19 @@ class DocumentStatus(BaseEnum):
     FAILED = "failed"       # 处理失败
 
 
+class ChunkType(BaseEnum):
+    """知识库切分块的类型（结构感知切分产出）。
+
+    - text：普通正文（段落 / 列表，可含标题行）
+    - table：整块表格（未与正文混合）
+    - mixed：表格与正文被归入同一块
+    """
+
+    TEXT = "text"       # 正文
+    TABLE = "table"     # 表格
+    MIXED = "mixed"     # 正文 + 表格
+
+
 class UsageCallType(BaseEnum):
     """用量记录对应的模型调用类型。"""
 

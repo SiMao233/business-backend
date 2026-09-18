@@ -109,6 +109,11 @@ class ChunkOut(ApiOutModel):
     knowledge_base_id: UUID
     seq_no: int
     content: str
+    section_path: str | None = Field(
+        default=None, description="所属章节路径（无标题结构时为 null）"
+    )
+    page_no: int | None = Field(default=None, description="来源页码（分页文档，如 PDF）")
+    chunk_type: str = Field(default="text", description="块类型：text / table / mixed")
     token_count: int | None = None
     char_count: int | None = None
     vector_id: str | None = None
@@ -131,6 +136,11 @@ class ChunkSearchOut(ApiOutModel):
     knowledge_base_id: UUID
     seq_no: int
     content: str
+    section_path: str | None = Field(
+        default=None, description="所属章节路径（无标题结构时为 null）"
+    )
+    page_no: int | None = Field(default=None, description="来源页码（分页文档，如 PDF）")
+    chunk_type: str = Field(default="text", description="块类型：text / table / mixed")
     token_count: int | None = None
     char_count: int | None = None
     create_time: UtcDateTime
