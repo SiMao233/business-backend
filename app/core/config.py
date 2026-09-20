@@ -140,6 +140,78 @@ class Settings(BaseSettings):
     # 注意：文本 embedding 的余弦相似度普遍偏低（相关片段通常 0.25~0.6，无关 0.1~0.25），
     # 设 0.7 会导致几乎永远 0 命中（表现为"没检索/检索不到"），故默认取 0.3，可按模型实测调整。
     rag_score_threshold: float = 0.3
+    # ---- Hybrid 检索（向量 + 关键词 + RRF 融合）----
+    # 是否启用 Hybrid（置 false 即回退纯向量检索，便于对比排查与故障降级）
+    rag_hybrid_enabled: bool = True
+    # 关键词路召回条数
+    rag_keyword_top_k: int = 8
+    # 单次查询抽取的关键词上限（优先级：标识符 > 拉丁词 > 数字 > CJK 二元滑窗）
+    rag_keyword_max_terms: int = 8
+    # 向量路过取条数：先过取再融合，避免阈值过滤后候选过少
+    rag_vector_fetch_k: int = 12
+    # RRF 常数 k（原论文取 60；越小越偏向各路的高排名结果）
+    rag_rrf_k: int = 60
+    # RRF 各路权重（向量路 / 关键词路）
+    rag_vector_weight: float = 1.0
+    rag_keyword_weight: float = 1.0
+    # 融合输出的候选池条数（仅在启用 Reranker 时生效）：
+    # 召回阶段应该“宁多勿漏”，把候选池放大交给 Reranker 精排，再截断到 rag_top_k。
+    # 未启用 Reranker 时融合直接输出 rag_top_k，不产生额外开销。
+    rag_candidate_k: int = 30
+
+    # ---- RAG 重排序（Reranker：Hybrid 负责召回，Reranker 负责精排）----
+    # 总开关。默认关闭：Reranker 是新增的外部依赖，先关着保证行为与改造前一致；
+    # 验证通过后再置 true。关闭时走 NoopReranker，不产生任何外部调用。
+    rag_rerank_enabled: bool = False
+    # rerank 模型实例的解析方式（复用 sys_model_provider / sys_model_instance，无需迁移）：
+    # 先按 rerank_provider_code 找供应商（承载专用 base_url 与 api_key），
+    # 再按 rerank_model_code 找其下的模型实例。任一为空则视为未配置 → 降级为 Noop。
+    # ⚠️ rerank 的 base_url 与 embedding 不同（如百炼为 compatible-api/v1），需单独建供应商。
+    rerank_provider_code: str = ""
+    rerank_model_code: str = ""
+    # 相关性分数阈值：低于该分数的候选丢弃。默认 0 表示不过滤
+    # （不同 rerank 模型的分数分布差异大，先上线观察日志里的实际分布再调）。
+    rag_rerank_score_threshold: float = 0.0
+    # 单次 rerank 请求超时（秒）。Reranker 串行阻塞首 token，超时必须快速降级。
+    rag_rerank_timeout: float = 5.0
+    # 可选英文指令（instruct），用于引导排序策略；为空则用模型默认的「问答检索」策略。
+    rag_rerank_instruct: str = ""
+
+    # ---- RAG 查询改写（Query Rewrite：多轮指代 / 省略问题的检索前补全）----
+    # 总开关。默认关闭：改写会多一次 LLM 往返（串行阻塞首 token），
+    # 关闭时零外部调用，行为与改造前完全一致。
+    rag_query_rewrite_enabled: bool = False
+    # 参与改写的历史轮数：1 个完整 round = 用户 1 条 + 助手 1 条（取最近 N 轮）
+    rag_query_rewrite_history_rounds: int = 2
+    # 改写请求超时（秒）。改写串行阻塞首 token，超时必须快速降级（已禁用 SDK 重试）。
+    # 实测耗时分布 1230~4386ms（波动大，推理模型 reasoning 长度不定）：设 4s 会偶发误杀，
+    # 表现为「同一个问题时好时坏」；改写只影响检索质量，多等两秒优于随机失效。
+    rag_query_rewrite_timeout: float = 6.0
+    # 改写输出的 token 上限。
+    # ⚠️ 推理模型（如 deepseek-v4-flash）的 reasoning token 与正文**共用**该预算：
+    # 实测设 128 时 reasoning 会吃光预算，正文为空 + finish_reason=length，
+    # 表现为「每次都被判定为非法输出 → 恒降级回原问题」。使用推理模型时请在
+    # .env 调到 1024 左右（实测 1024 下改写全部正常返回）。
+    rag_query_rewrite_max_tokens: int = 1024
+    # 改写结果字符上限：超出视为异常输出 → 回退原问题
+    rag_query_rewrite_max_chars: int = 200
+
+    # ---- RAG Grounding（证据接地：严格提示词 + 引用审计 + 证据不足拒答）----
+    # 总开关：开启后注入 GROUNDING_RULES（禁止用预训练知识扩展事实、强制标注 [n] 引用），
+    # 并对回答做引用合法性审计（**只上报与记日志，不改写正文**）。
+    # 关闭时不注入规则、不产出 grounding 出参，行为与改造前一致。
+    rag_grounding_enabled: bool = True
+    # 证据不足时由**后端直接拒答**：返回固定文案，不调用 Chat LLM，也不调用 Rewrite LLM。
+    # 关闭时退化为「强约束提示词 + 无证据说明」，由模型自行拒答（概率性，无硬保证）。
+    rag_abstain_enabled: bool = True
+    # 相关性阈值：**只对最高 rerank 分数生效**（命中为空时无条件拒答，不看阈值）。
+    # 依据：实测 qwen3-rerank 对相关片段的打分区间约 0.48~0.89，故取低于下沿的 0.35 作为初始校准值，
+    # 上线后按日志里的真实分数分布调整（正常问答被误拒 → 调低；无关问题仍作答 → 调高）。
+    # ⚠️ 向量余弦（实测相关片段仅 0.25~0.6）不可用作阈值，故**不参与**判定：
+    #    未启用 Reranker（所有命中都没有 rerank_score）时一律 fail-open，不拒答。
+    rag_abstain_min_score: float = 0.35
+    # 拒答文案（面向用户，前端直接展示）；措辞与提示词里的拒答要求保持一致
+    rag_abstain_message: str = "根据当前知识库，我无法确认这个问题。"
 
     # ---- 用量统计 ----
     # 业务时区：用于把 UTC 时间切成"自然日"（usage_date）后按天聚合；

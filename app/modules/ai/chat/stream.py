@@ -7,8 +7,9 @@
 - 落库：`_save_reply()` / `persist_usage()` 同样用短会话，且属**旁路能力**，
   失败只记日志，绝不影响已推送的内容。
 
-执行流程：`meta` →（预检索 `tool`）→ 按 `config.tools` 走工具模式或纯 RAG →
-`reasoning` / `delta` 增量 → `done`（带步骤时间线、耗时与用量）。
+执行流程：`meta` →（预检索 `tool`）→ 证据不足则 ABSTAIN（后端固定文案，**不调用 LLM**），
+否则按 `config.tools` 走工具模式或纯 RAG → `reasoning` / `delta` 增量 → `done`
+（带步骤时间线、耗时、用量与 `grounding` 引用审计）。
 流中途异常转 `error` 事件（HTTP 仍 200）；客户端中断（`CancelledError`）不发 `done`，
 但会在 `finally` 里屏蔽取消、落库已生成内容。
 每个事件都带单调递增的 `seq`（由 `_emit` 统一发号，预检索与模型事件共用同一序号空间）。
@@ -41,6 +42,7 @@ from app.modules.ai.chat.messages import (
     system_prompt_of,
 )
 from app.modules.ai.chat.runtime import (
+    FINISH_ABSTAIN,
     FINISH_ERROR,
     FINISH_STOP,
     KNOWLEDGE_TOOL,
@@ -59,6 +61,17 @@ from app.modules.ai.chat.schema import (
     AiStreamUsageOut,
 )
 from app.modules.ai.conversation.service import ConversationService
+from app.modules.ai.grounding import (
+    EvidenceAssessment,
+    abstain_message,
+    assess_evidence,
+    collect_sources,
+    grounding_out,
+    grounding_prompt_enabled,
+    needs_no_evidence_note,
+    should_abstain,
+)
+from app.modules.ai.query import apply_query_rewrite
 from app.modules.ai.retrieval import build_sources, format_context, retrieve_hits
 from app.modules.ai.steps import AiStepOut, StepKind, build_timeline
 from app.modules.ai.tools import build_tools
@@ -169,9 +182,23 @@ async def _stream_rag_mode(
     reasoning_parts: list[str],
     usage: dict[str, int],
     timer: TokenTimer,
+    *,
+    grounding: bool,
+    no_evidence_note: bool,
 ) -> AsyncIterator[StreamEvent]:
-    """纯 RAG 模式：用已检索好的参考资料组装消息，再流式调用模型。"""
-    messages = build_messages(system_prompt_of(ctx.config), context, ctx.history, ctx.user_input)
+    """纯 RAG 模式：用已检索好的参考资料组装消息，再流式调用模型。
+
+    `grounding` / `no_evidence_note` 由 `stream_chat` 从 grounding.py 的判定结果传入，
+    决定是否注入严格接地规则与「本轮无资料」说明（两者都交给 `build_messages`）。
+    """
+    messages = build_messages(
+        system_prompt_of(ctx.config),
+        context,
+        ctx.history,
+        ctx.user_input,
+        grounding=grounding,
+        no_evidence_note=no_evidence_note,
+    )
     seen_ids: set[str] = set()
     settings = get_settings()
     async for chunk in ctx.llm.astream(messages, timeout=settings.ai_request_timeout):
@@ -197,6 +224,9 @@ async def _stream_tool_mode(
     usage: dict[str, int],
     timer: TokenTimer,
     collector: StepCollector,
+    *,
+    grounding: bool,
+    no_evidence_note: bool,
 ) -> AsyncIterator[StreamEvent]:
     """工具模式：走 LangChain 智能体逐 token 流式，并把工具调用过程推给前端。
 
@@ -209,7 +239,14 @@ async def _stream_tool_mode(
     from langchain.agents import create_agent
 
     agent = create_agent(
-        ctx.llm, tools, system_prompt=compose_system_prompt(system_prompt_of(ctx.config), context)
+        ctx.llm,
+        tools,
+        system_prompt=compose_system_prompt(
+            system_prompt_of(ctx.config),
+            context,
+            grounding=grounding,
+            no_evidence_note=no_evidence_note,
+        ),
     )
     messages = build_messages("", "", ctx.history, ctx.user_input)
     started_tools: set[str] = set()
@@ -278,6 +315,11 @@ async def stream_chat(ctx: ChatStreamContext) -> AsyncIterator[StreamEvent]:
     - 落库用独立短会话 + 取消屏蔽（shield），保证中断时也能写入部分内容；
       只检索、未产出正文就被中断时同样落库（steps 非空即写）；
     - 绑定知识库则先统一检索（两种模式一致），避免工具模式下模型不调工具就"没检索直接答"；
+    - 预检索后先做证据判定（`grounding.py`）：证据不足且未配置非知识库工具时进入 ABSTAIN ——
+      直接返回固定拒答文案、**不调用 Chat LLM**（`finish_reason=abstain`）；
+      拒答开关关闭 / 配了其它工具时改为注入 `NO_EVIDENCE_PROMPT` 强约束（概率性）；
+    - 检索前可选执行 Query Rewrite（`RAG_QUERY_REWRITE_ENABLED`）：它只替换**检索用 query**，
+      发给模型的仍是原始 `ctx.user_input`；失败 / 超时 / 输出非法则自动回退原问题；
     - 每个事件都带单调递增的 `seq`（由 `_emit` 统一发号，预检索与模型事件共用同一序号空间）；
       实时态前端按 `seq` 交错渲染即可；
     - `done` 事件里的 `steps`（思考 + 动作时间线）/ `thinking_ms` / `ttft_ms`
@@ -287,6 +329,12 @@ async def stream_chat(ctx: ChatStreamContext) -> AsyncIterator[StreamEvent]:
     reasoning_parts: list[str] = []
     usage = {"input_tokens": 0, "output_tokens": 0, "total_tokens": 0}
     finish_reason = FINISH_STOP
+    # 证据接地判定（未绑定知识库时保持 None，grounding_out 按「无法判定」处理）
+    assessment: EvidenceAssessment | None = None
+    abstain = False
+    no_evidence_note = False
+    # 严格接地规则：绑定知识库且总开关开启才注入（开关只读这一处）
+    grounding = grounding_prompt_enabled(ctx.config)
     # 引用编号计数器：预检索与模型主动调用的检索工具共用，保证 [n] 在单次请求内全局唯一
     cited: dict[str, int] = {"n": 0}
     tools = build_tools(ctx.config, cited)
@@ -327,11 +375,25 @@ async def stream_chat(ctx: ChatStreamContext) -> AsyncIterator[StreamEvent]:
                     ),
                 )
             )
-            hits = await _retrieve_hits_short_session(ctx.config, ctx.user_input)
+            # 查询改写（可选）：放在 collector.start 之后，耗时会计入该检索步骤的 cost_ms。
+            # ⚠️ 只影响检索用 query —— 下面 build_messages 仍用 ctx.user_input（原始问题），
+            # 改写结果绝不替换发给模型的消息，也绝不进入最终答案。
+            rewrite = await apply_query_rewrite(ctx.rewrite_llm, ctx.user_input, ctx.history)
+            hits = await _retrieve_hits_short_session(ctx.config, rewrite.rewritten_query)
+            # 证据接地判定：与同步路径共用 grounding.py 的同一套函数，口径必然一致
+            assessment = assess_evidence(hits)
+            abstain = should_abstain(hits, ctx.config)
+            no_evidence_note = needs_no_evidence_note(hits, ctx.config)
             # 读改写必须紧邻（中间不得有 await）：与工具的并发调用也不会撞号
             start = cited["n"]
             cited["n"] += len(hits)
             context = format_context(hits, start)
+            # 拒答时把判定结论写进步骤摘要：前端不解析 grounding 出参也能看懂发生了什么
+            summary = f"命中 {len(hits)} 条参考资料"
+            if abstain:
+                summary = (
+                    f"{summary}（相关度不足，已拒答）" if hits else "未命中参考资料（已拒答）"
+                )
             yield _emit(
                 StreamEvent(
                     "tool",
@@ -340,20 +402,46 @@ async def stream_chat(ctx: ChatStreamContext) -> AsyncIterator[StreamEvent]:
                             step_id,
                             KNOWLEDGE_TOOL,
                             StepKind.RETRIEVAL.value,
-                            f"命中 {len(hits)} 条参考资料",
+                            summary,
                             build_sources(hits, start) or None,
                         )
                     ),
                 )
             )
 
-        if tools:
+        if abstain:
+            # 证据不足：直接返回后端固定文案，**不调用任何 LLM**（唯一确定性的「不猜」保证）。
+            # 仍推 delta + done，保持前端「按增量拼接正文」的既有契约不变。
+            answer = abstain_message()
+            timer.mark_text()
+            parts.append(answer)
+            finish_reason = FINISH_ABSTAIN
+            yield _emit(StreamEvent("delta", AiStreamDeltaOut(content=answer)))
+        elif tools:
             async for event in _stream_tool_mode(
-                ctx, tools, context, parts, reasoning_parts, usage, timer, collector
+                ctx,
+                tools,
+                context,
+                parts,
+                reasoning_parts,
+                usage,
+                timer,
+                collector,
+                grounding=grounding,
+                no_evidence_note=no_evidence_note,
             ):
                 yield _emit(event)
         else:
-            async for event in _stream_rag_mode(ctx, context, parts, reasoning_parts, usage, timer):
+            async for event in _stream_rag_mode(
+                ctx,
+                context,
+                parts,
+                reasoning_parts,
+                usage,
+                timer,
+                grounding=grounding,
+                no_evidence_note=no_evidence_note,
+            ):
                 yield _emit(event)
     except asyncio.CancelledError:
         # 客户端断开：不发 done（连接已断），交由 finally 落库已生成内容
@@ -387,12 +475,13 @@ async def stream_chat(ctx: ChatStreamContext) -> AsyncIterator[StreamEvent]:
             )
 
     reasoning_text = "".join(reasoning_parts)
+    answer_text = "".join(parts)
     yield _emit(
         StreamEvent(
             "done",
             AiStreamDoneOut(
                 session_id=ctx.conv_id,
-                content="".join(parts),
+                content=answer_text,
                 reasoning=reasoning_text,
                 # 时间线：thinking 片段与动作按位置交错（与历史出参用同一纯函数，结果必然一致）
                 steps=[
@@ -404,6 +493,9 @@ async def stream_chat(ctx: ChatStreamContext) -> AsyncIterator[StreamEvent]:
                 model=ctx.model_code,
                 finish_reason=finish_reason,
                 usage=AiStreamUsageOut(**usage),
+                grounding=grounding_out(
+                    assessment, collect_sources(collector.steps), answer_text, abstained=abstain
+                ),
             ),
         )
     )

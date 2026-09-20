@@ -133,7 +133,9 @@ async def delete_by_filter(**filters: str) -> None:
             ),
         )
     except Exception as exc:  # noqa: BLE001 - Qdrant 不可用时降级，不阻断删除
-        logger.warning("Qdrant 向量清理失败 filters={} err={}", filters, exc)
+        # 用 {!r} 而非 {}：部分异常（如 TimeoutError()）的 str() 为空串，
+        # 会导致日志里只有 "err=" 而无法定位原因。
+        logger.warning("Qdrant 向量清理失败 filters={} err={!r}", filters, exc)
 
 
 async def search_chunks(

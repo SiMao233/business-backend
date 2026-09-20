@@ -1,8 +1,17 @@
-"""AI 检索能力：RAG 知识库召回（Agent 绑定知识库 → 向量检索 → 参考资料 + 结构化来源）。
+"""AI 检索能力：RAG 知识库召回（Query Rewrite → Hybrid 检索 → Rerank → 参考资料 + 结构化来源）。
 
-收敛所有「读知识库配置 + 向量检索 + 来源富化」的逻辑，供两处复用：
+收敛所有「读知识库配置 + 检索 + 来源富化」的逻辑，供两处复用：
 - 纯 RAG 对话（chat/service.py）：无条件检索后注入参考资料；
 - `knowledge_retrieval` 工具（tools.py）：由模型自主决定是否检索。
+
+检索本身委托给 `retrievers.py`（VectorRetriever / KeywordRetriever / HybridRetriever），
+精排委托给 `rerankers.py`（NoopReranker / OpenAICompatibleReranker）：
+本模块只负责「解析知识库边界 + 召回 + 精排 + 富化来源」，
+因此新增检索能力或替换 Reranker 都不需要改这里，更不需要改 Chat / SSE 层。
+
+⚠️ 边界：Query Rewrite（多轮指代 / 省略补全，见 `query.py`）由**调用方在 chat 层**完成，
+本模块只接受一个已定稿的 query 字符串 —— 因此检索层依旧不依赖 LLM，
+`retrieve_hits()` 的签名与行为保持不变。
 
 约束：Agent 绑定的多个知识库应使用同一 embedding 模型（用第一个知识库的模型构造查询向量）。
 
@@ -15,7 +24,6 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import get_settings
 from app.modules.ai.steps import SourceType
 
 # 来源条目里正文片段的截断长度（避免 steps JSON 体积随消息数量膨胀）
@@ -37,14 +45,17 @@ async def retrieve_hits(db: AsyncSession, config: dict, query: str) -> list[dict
 
     无绑定知识库 / 知识库未启用 / 无命中时返回空列表。
     返回项：{chunk_id, document_id, document_name, file_id, knowledge_base_id,
-    knowledge_base_name, seq_no, content, score}
+    knowledge_base_name, seq_no, content, score, retrievers}
+    其中 `score` 为向量相似度（仅向量路命中时非空）；`retrievers` 为命中来源标记，
+    仅供观测与测试断言，不会进入 `sources` 出参。
     """
     knowledge_ids = config.get("knowledge_ids") or []
     if not knowledge_ids:
         return []
 
-    # 延迟导入：避免与 knowledge / vector 模块产生循环依赖
-    from app.modules.ai import vector
+    # 延迟导入：避免与 knowledge / retrievers 模块产生循环依赖
+    from app.modules.ai.rerankers import apply_rerank
+    from app.modules.ai.retrievers import build_retriever
     from app.modules.knowledge.repository import DocumentRepository, KnowledgeBaseRepository
 
     # 批量加载后按配置顺序还原（等价于逐条 get_by_id，但只有 1 次查询）
@@ -61,11 +72,16 @@ async def retrieve_hits(db: AsyncSession, config: dict, query: str) -> list[dict
     if not kbs:
         return []
 
-    embeddings = await vector.build_embeddings(db, kbs[0].embedding_model_id)
-    query_vector = await embeddings.aembed_query(query)
-    hits = await vector.search_chunks(
-        query_vector, [kb.id.hex for kb in kbs], get_settings().rag_top_k
-    )
+    # Hybrid 检索（向量 + 关键词 + RRF 融合）：走哪条路由 build_retriever() 按配置决定，
+    # 知识库边界（kbs）在两路都强制过滤。
+    hits = await build_retriever().retrieve(db, kbs, query)
+    if not hits:
+        return []
+
+    # 精排（可选）：召回负责「不漏」，Reranker 负责「排序准」。
+    # 放在富化之前：rerank 只需要 content，先收窄候选再到 MySQL 回查文档（IN 查询行数更少）。
+    # 关闭 / 配置不可用 / 调用失败或超时 → 自动降级为融合结果（见 rerankers.apply_rerank）。
+    hits = await apply_rerank(db, query, hits)
     if not hits:
         return []
 

@@ -11,9 +11,14 @@
 把结构化来源放进 `ToolMessage.artifact`（**不发给模型**），文本仍按 `format_context` 呈现给模型。
 两块结果共用调用方传入的 `cited` 计数器，保证 `[n]` 在**单次请求内全局唯一**：
 预检索块占 1..k，模型后续调工具检索到的资料从 k+1 继续编号，正文角标不会二义。
+
+空命中不返回空串，而是 `grounding.NO_EVIDENCE_TOOL_TEXT`：显式告诉模型「本轮没有资料」，
+否则模型会把空返回理解为「不受约束」，转用自己的预训练知识作答（正是要堵的幻觉来源）。
 """
 
 from langchain_core.tools import tool
+
+from app.modules.ai.grounding import NO_EVIDENCE_TOOL_TEXT
 
 
 def build_tools(config: dict, cited: dict[str, int] | None = None) -> list:
@@ -50,6 +55,9 @@ def _knowledge_retrieval_tool(config: dict, cited: dict[str, int]):
 
         async with AsyncSessionLocal() as db:
             hits = await retrieve_hits(db, config, query)
+            # 空命中：显式告知「没有资料」，并保持编号计数不变（不占用 [n]）
+            if not hits:
+                return NO_EVIDENCE_TOOL_TEXT, []
             # 读改写必须紧邻（中间不得有 await）：asyncio 协作式调度下即为原子操作，
             # 故模型并发发起多次工具调用也不会拿到重复编号。
             start = cited["n"]

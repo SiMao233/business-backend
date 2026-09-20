@@ -23,6 +23,8 @@ from langchain_openai import ChatOpenAI
 # 流式结束原因
 FINISH_STOP = "stop"
 FINISH_ERROR = "error"
+# 证据不足直接拒答（后端固定文案，未调用 LLM）——与 FINISH_STOP 区分，前端可据此渲染「未作答」态
+FINISH_ABSTAIN = "abstain"
 
 # 知识库检索的工具名 / 事件名（预检索与 knowledge_retrieval 工具同名，前端展示统一）
 KNOWLEDGE_TOOL = "knowledge_retrieval"
@@ -171,6 +173,8 @@ class LlmRuntime:
     # 单价快照（元 / 千 token），用于核算成本
     input_price: Decimal | None = None
     output_price: Decimal | None = None
+    # 查询改写专用客户端（复用上面的供应商参数，但超时 / token 预算独立）
+    rewrite_llm: ChatOpenAI | None = None
 
 
 @dataclass
@@ -196,3 +200,5 @@ class ChatStreamContext:
     provider_code: str | None = None
     input_price: Decimal | None = None
     output_price: Decimal | None = None
+    # 查询改写专用客户端（None 表示不可用 → 改写直接降级为不改写）
+    rewrite_llm: ChatOpenAI | None = None

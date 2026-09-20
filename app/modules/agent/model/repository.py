@@ -84,6 +84,35 @@ class ModelInstanceRepository(BaseRepository):
         result = await self.db.execute(stmt)
         return result.scalar_one_or_none()
 
+    # 按「供应商 + 模型编码」查询实例（配置只给 code 时的解析方式，如 rerank 全局配置）
+    async def get_by_provider_and_code(
+        self, provider_id: UUID, code: str
+    ) -> ModelInstance | None:
+        stmt = (
+            select(ModelInstance)
+            .options(selectinload(ModelInstance.provider))
+            .where(ModelInstance.provider_id == provider_id, ModelInstance.code == code)
+        )
+        result = await self.db.execute(stmt)
+        return result.scalars().first()
+
+    # 按「供应商 + 模型类型」查询启用实例（配置未指定具体模型时的兜底选择）
+    async def get_by_provider_and_type(
+        self, provider_id: UUID, model_type: str
+    ) -> ModelInstance | None:
+        stmt = (
+            select(ModelInstance)
+            .options(selectinload(ModelInstance.provider))
+            .where(
+                ModelInstance.provider_id == provider_id,
+                ModelInstance.model_type == model_type,
+                ModelInstance.status == 1,
+            )
+            .order_by(ModelInstance.create_time.asc())
+        )
+        result = await self.db.execute(stmt)
+        return result.scalars().first()
+
     # 分页查询实例列表，支持关键字 / 供应商 / 类型 / 状态筛选
     async def list_page(
         self,

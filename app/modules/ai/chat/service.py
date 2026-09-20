@@ -47,10 +47,27 @@ from app.modules.ai.chat.messages import (
     compose_system_prompt,
     system_prompt_of,
 )
-from app.modules.ai.chat.runtime import KNOWLEDGE_TOOL, ChatStreamContext, LlmRuntime
+from app.modules.ai.chat.runtime import (
+    FINISH_ABSTAIN,
+    FINISH_STOP,
+    KNOWLEDGE_TOOL,
+    ChatStreamContext,
+    LlmRuntime,
+)
 from app.modules.ai.chat.schema import AiChatOut
 from app.modules.ai.chat.stream import persist_usage
 from app.modules.ai.conversation.service import ConversationService
+from app.modules.ai.grounding import (
+    EvidenceAssessment,
+    abstain_message,
+    assess_evidence,
+    collect_sources,
+    grounding_out,
+    grounding_prompt_enabled,
+    needs_no_evidence_note,
+    should_abstain,
+)
+from app.modules.ai.query import apply_query_rewrite, build_rewrite_llm
 from app.modules.ai.reasoning import ReasoningChatOpenAI
 from app.modules.ai.retrieval import build_sources, format_context, retrieve_hits
 from app.modules.ai.steps import AiStepOut, StepKind, build_timeline
@@ -80,7 +97,9 @@ class AiChatService:
         """同步执行 Agent 对话：加载配置 → 按 config.tools 走智能体（工具调用）或纯 RAG → 调用模型 → 返回回复。
 
         - 有 user_id 时自动落库会话（传 session_id 复用，否则新建）；
-        - 无 user_id（后台任务）不落库。
+        - 无 user_id（后台任务）不落库；
+        - 证据不足且未配置非知识库工具时直接拒答（固定文案，**不调用 LLM**），
+          与流式路径共用 `grounding.py` 的同一套判定。
         """
         agent, config = await self._load_agent_config(agent_id)
         conv_id, history = await self._resolve_conversation(agent_id, user_input, user_id, session_id)
@@ -99,23 +118,43 @@ class AiChatService:
         # token 用量（同步路径从 usage_metadata 汇总；网关不返回则全 0）
         usage = {"input_tokens": 0, "output_tokens": 0, "total_tokens": 0}
         seen_usage_ids: set[str] = set()
+        # 证据接地：判定结果 + 提示词开关（与流式路径共用 grounding.py 的同一套函数）
+        assessment: EvidenceAssessment | None = None
+        abstain = False
+        no_evidence_note = False
+        finish_reason = FINISH_STOP
+        grounding = grounding_prompt_enabled(config)
         try:
             # 预检索：与流式路径保持一致 —— 只要绑定知识库就先检索并注入参考资料，
             # 避免工具模式下模型不调工具就"没检索直接答"；同时记录一条 retrieval 步骤。
             context = ""
             if config.get("knowledge_ids"):
-                hits = await retrieve_hits(self.db, config, user_input)
+                # 查询改写（可选）：把「那这个怎么办？」这类指代 / 省略问题结合历史补全成
+                # 自足问题后再检索。⚠️ 只影响检索用 query —— 后面组装消息仍用原始 user_input
+                # （改写绝不允许替换发给模型的消息，也不允许进入最终答案）。
+                rewrite = await apply_query_rewrite(runtime.rewrite_llm, user_input, history)
+                hits = await retrieve_hits(self.db, config, rewrite.rewritten_query)
+                # 证据接地判定：与流式路径共用 grounding.py 的同一套函数，口径必然一致
+                assessment = assess_evidence(hits)
+                abstain = should_abstain(hits, config)
+                no_evidence_note = needs_no_evidence_note(hits, config)
                 # 与流式路径口径一致：读改写紧邻，编号请求内全局唯一
                 start = cited["n"]
                 cited["n"] += len(hits)
                 context = format_context(hits, start)
+                # 拒答时把判定结论写进步骤摘要（与流式路径的文案一致）
+                summary = f"命中 {len(hits)} 条参考资料"
+                if abstain:
+                    summary = (
+                        f"{summary}（相关度不足，已拒答）" if hits else "未命中参考资料（已拒答）"
+                    )
                 steps.append(
                     {
                         "step_id": uuid4().hex,
                         "kind": StepKind.RETRIEVAL.value,
                         "name": KNOWLEDGE_TOOL,
                         "status": "done",
-                        "output": f"命中 {len(hits)} 条参考资料",
+                        "output": summary,
                         "cost_ms": None,
                         # 预检索在 LLM 调用之前，推理必为空
                         "reasoning_offset": 0,
@@ -123,11 +162,22 @@ class AiChatService:
                     }
                 )
 
-            if tools:
+            if abstain:
+                # 证据不足：后端固定文案，**不调用任何 LLM**（与流式路径同一套判定）
+                reply = abstain_message()
+                finish_reason = FINISH_ABSTAIN
+            elif tools:
                 from langchain.agents import create_agent
 
                 agent_graph = create_agent(
-                    llm, tools, system_prompt=compose_system_prompt(system_prompt, context)
+                    llm,
+                    tools,
+                    system_prompt=compose_system_prompt(
+                        system_prompt,
+                        context,
+                        grounding=grounding,
+                        no_evidence_note=no_evidence_note,
+                    ),
                 )
                 msgs = build_messages("", "", history, user_input)
                 result = await agent_graph.ainvoke({"messages": msgs})
@@ -144,7 +194,14 @@ class AiChatService:
                     accumulate_usage(usage, message, seen_usage_ids)
             else:
                 # 纯 RAG 模式：组装上下文 → 调用模型
-                messages = build_messages(system_prompt, context, history, user_input)
+                messages = build_messages(
+                    system_prompt,
+                    context,
+                    history,
+                    user_input,
+                    grounding=grounding,
+                    no_evidence_note=no_evidence_note,
+                )
                 response = await llm.ainvoke(messages, timeout=settings.ai_request_timeout)
                 reply = response.content if hasattr(response, "content") else str(response)
                 reasoning = chunk_reasoning(response)
@@ -195,6 +252,9 @@ class AiChatService:
             reasoning=reasoning,
             # 时间线：thinking 片段与动作按位置交错（与流式路径同一纯函数）
             steps=[AiStepOut.model_validate(s) for s in build_timeline(steps, reasoning)],
+            # 证据接地审计（与流式 done 事件同一套组装函数，字段必然一致）
+            finish_reason=finish_reason,
+            grounding=grounding_out(assessment, collect_sources(steps), reply, abstained=abstain),
             model=model_code,
             async_=False,
             session_id=conv_id,
@@ -237,6 +297,8 @@ class AiChatService:
             provider_code=runtime.provider_code,
             input_price=runtime.input_price,
             output_price=runtime.output_price,
+            # 查询改写客户端（流式阶段请求级会话已归还，但它不依赖会话，可安全传递）
+            rewrite_llm=runtime.rewrite_llm,
         )
 
     # ---- ARQ 任务入口（异步）----
@@ -300,7 +362,8 @@ class AiChatService:
     ) -> LlmRuntime:
         """根据 Agent 绑定的模型实例构造 ChatOpenAI（OpenAI 兼容协议）。
 
-        返回 `LlmRuntime`：客户端 + 模型 / 供应商快照与单价（供用量统计打点）。
+        返回 `LlmRuntime`：客户端 + 模型 / 供应商快照与单价（供用量统计打点），
+        以及查询改写专用客户端（复用同一套供应商参数，但超时 / token 预算独立）。
         Agent 未绑定模型实例时，回退到配置 ai_default_model。
         opencode 网关兼容：base_url 含 opencode 时需携带 x-opencode-session（取会话 ID 前 8 位）。
         """
@@ -358,4 +421,13 @@ class AiChatService:
             provider_code=provider_code,
             input_price=input_price,
             output_price=output_price,
+            # 查询改写客户端：复用上面的 model / base_url / api_key / default_headers，
+            # 但超时与 token 预算独立（且 max_retries=0），避免拖慢或影响主 Chat 调用；
+            # 开关关闭时它不会被调用（唯一的 gate 在 query.apply_query_rewrite 内）。
+            rewrite_llm=build_rewrite_llm(
+                model_code,
+                api_key=api_key,
+                base_url=base_url,
+                default_headers=default_headers,
+            ),
         )

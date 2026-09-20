@@ -36,6 +36,7 @@ class ModelType(BaseEnum):
 
     CHAT = "chat"           # 对话 / 文本生成
     EMBEDDING = "embedding" # 向量化
+    RERANK = "rerank"       # 重排序（RAG 精排）
     IMAGE = "image"         # 图像生成
     AUDIO = "audio"         # 语音
 

@@ -66,7 +66,7 @@ class ModelInstance(TimestampMixin, Base):
     # 调用时使用的模型标识（如 gpt-4o / deepseek-chat）
     code: Mapped[str] = mapped_column(String(64), nullable=False)
 
-    # 模型类型（ModelType 枚举值：chat / embedding / image / audio）
+    # 模型类型（ModelType 枚举值：chat / embedding / rerank / image / audio）
     model_type: Mapped[str] = mapped_column(String(16), nullable=False, default="chat")
 
     # 上下文上限（token）

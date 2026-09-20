@@ -5,6 +5,7 @@ from uuid import UUID
 from pydantic import Field, field_serializer
 
 from app.common.schema import ApiInModel, ApiOutModel
+from app.modules.ai.grounding import AiGroundingOut
 from app.modules.ai.steps import AiSourceOut, AiStepOut, StepKind
 
 
@@ -25,6 +26,13 @@ class AiChatOut(ApiOutModel):
     reasoning: str = Field(default="", description="模型推理内容（思维链，推理型模型才有）")
     # 工具 / 检索步骤（与历史出参 MessageOut.steps 同构，便于刷新后一致展示）
     steps: list[AiStepOut] = Field(default_factory=list, description="检索 / 工具调用步骤")
+    finish_reason: str = Field(
+        default="stop",
+        description="结束原因：stop（正常）/ abstain（证据不足已拒答，未调用模型）/ error（出错）",
+    )
+    grounding: AiGroundingOut | None = Field(
+        default=None, description="证据接地与引用审计（rag_grounding_enabled 关闭时为 null）"
+    )
     thinking_ms: int | None = Field(
         default=None, description="思考耗时（毫秒；首个 reasoning → 首个正文，无推理内容时为 null）"
     )
@@ -143,9 +151,13 @@ class AiStreamDoneOut(AiStreamEventOut):
     ttft_ms: int | None = Field(default=None, description="首字节耗时（毫秒；未产出正文时为 null）")
     model: str = Field(default="", description="实际使用的模型标识")
     finish_reason: str = Field(
-        default="stop", description="结束原因：stop（正常）/ length（截断）/ error（出错）"
+        default="stop",
+        description="结束原因：stop（正常）/ length（截断）/ abstain（证据不足拒答）/ error（出错）",
     )
     usage: AiStreamUsageOut | None = Field(default=None, description="token 用量（可选）")
+    grounding: AiGroundingOut | None = Field(
+        default=None, description="证据接地与引用审计（rag_grounding_enabled 关闭时为 null）"
+    )
 
     @field_serializer("session_id")
     def serialize_id(self, value: UUID | None) -> str | None:
