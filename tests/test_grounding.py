@@ -35,6 +35,7 @@ from app.modules.ai.grounding import (
     collect_sources,
     grounding_out,
     has_non_kb_tools,
+    is_refusal,
     needs_no_evidence_note,
     should_abstain,
 )
@@ -315,6 +316,17 @@ def test_audit_ignores_short_sentences() -> None:
     audit = audit_answer("好的。谢谢。", _sources(1))
 
     assert audit.uncited_claims == 0
+
+
+def test_is_refusal_detects_hard_and_soft_refusal() -> None:
+    """整段拒答判定（评测框架的「宽松拒答口径」依赖它）：硬拒答文案与常见拒答措辞都算。"""
+    _set(rag_abstain_message="根据当前知识库，我无法确认这个问题。")
+
+    assert is_refusal(abstain_message()) is True
+    assert is_refusal("现有资料不足以回答这个问题，建议咨询人事。") is True
+    assert is_refusal("迟到超过三十分钟按半天事假处理 [1]。") is False
+    assert is_refusal("") is False
+    assert is_refusal("   ") is False
 
 
 def test_audit_handles_duplicates_zero_and_long_numbers() -> None:

@@ -1,0 +1,4372 @@
+{
+  "meta": {
+    "ts": "2026-09-21T07:59:23.235380+00:00",
+    "tag": "baseline-init",
+    "ks": [
+      1,
+      3,
+      5,
+      10
+    ],
+    "eval_top_k": 10,
+    "questions": 40,
+    "thresholds": {
+      "hit_at_5": 0.8,
+      "evidence_recall_at_5": 0.78,
+      "mrr": 0.72
+    },
+    "dataset_path": "/Users/limk/Project/python/knowledge-ai-platform/business-backend/tests/rag/golden/rag_golden.toml",
+    "dataset_version": 1,
+    "config": {
+      "rag_top_k": 4,
+      "rag_score_threshold": 0.3,
+      "rag_hybrid_enabled": true,
+      "rag_candidate_k": 30,
+      "rag_rerank_enabled": false,
+      "rag_rerank_score_threshold": 0.0,
+      "rag_abstain_enabled": true,
+      "rag_abstain_min_score": 0.35,
+      "rag_grounding_enabled": true,
+      "rag_query_rewrite_enabled": false,
+      "chunk_size": 800,
+      "chunk_overlap": 120,
+      "embedding_batch_size": 16
+    },
+    "git": {
+      "commit": "3134d68",
+      "dirty": true
+    }
+  },
+  "retrieval": {
+    "overall": {
+      "hit@1": 0.7352941176470589,
+      "evidence_recall@1": 0.6911764705882353,
+      "source_recall@1": 0.8676470588235294,
+      "hit@3": 0.8529411764705882,
+      "evidence_recall@3": 0.8235294117647058,
+      "source_recall@3": 0.8970588235294118,
+      "hit@5": 0.8823529411764706,
+      "evidence_recall@5": 0.8676470588235294,
+      "source_recall@5": 0.9264705882352942,
+      "hit@10": 0.9117647058823529,
+      "evidence_recall@10": 0.8970588235294118,
+      "source_recall@10": 0.9264705882352942,
+      "mrr": 0.8051470588235294
+    },
+    "by_category": {
+      "anaphora": {
+        "hit@1": 0.2,
+        "evidence_recall@1": 0.2,
+        "source_recall@1": 0.2,
+        "hit@3": 0.4,
+        "evidence_recall@3": 0.4,
+        "source_recall@3": 0.4,
+        "hit@5": 0.4,
+        "evidence_recall@5": 0.4,
+        "source_recall@5": 0.6,
+        "hit@10": 0.4,
+        "evidence_recall@10": 0.4,
+        "source_recall@10": 0.6,
+        "mrr": 0.3,
+        "_count": 5.0
+      },
+      "cross_chunk": {
+        "hit@1": 0.6,
+        "evidence_recall@1": 0.3,
+        "source_recall@1": 0.9,
+        "hit@3": 0.8,
+        "evidence_recall@3": 0.6,
+        "source_recall@3": 0.9,
+        "hit@5": 1.0,
+        "evidence_recall@5": 0.9,
+        "source_recall@5": 0.9,
+        "hit@10": 1.0,
+        "evidence_recall@10": 0.9,
+        "source_recall@10": 0.9,
+        "mrr": 0.75,
+        "_count": 5.0
+      },
+      "keyword": {
+        "hit@1": 0.8,
+        "evidence_recall@1": 0.8,
+        "source_recall@1": 1.0,
+        "hit@3": 1.0,
+        "evidence_recall@3": 1.0,
+        "source_recall@3": 1.0,
+        "hit@5": 1.0,
+        "evidence_recall@5": 1.0,
+        "source_recall@5": 1.0,
+        "hit@10": 1.0,
+        "evidence_recall@10": 1.0,
+        "source_recall@10": 1.0,
+        "mrr": 0.9,
+        "_count": 5.0
+      },
+      "multi_turn": {
+        "hit@1": 1.0,
+        "evidence_recall@1": 1.0,
+        "source_recall@1": 1.0,
+        "hit@3": 1.0,
+        "evidence_recall@3": 1.0,
+        "source_recall@3": 1.0,
+        "hit@5": 1.0,
+        "evidence_recall@5": 1.0,
+        "source_recall@5": 1.0,
+        "hit@10": 1.0,
+        "evidence_recall@10": 1.0,
+        "source_recall@10": 1.0,
+        "mrr": 1.0,
+        "_count": 5.0
+      },
+      "proper_noun": {
+        "hit@1": 0.8333333333333334,
+        "evidence_recall@1": 0.8333333333333334,
+        "source_recall@1": 1.0,
+        "hit@3": 0.8333333333333334,
+        "evidence_recall@3": 0.8333333333333334,
+        "source_recall@3": 1.0,
+        "hit@5": 0.8333333333333334,
+        "evidence_recall@5": 0.8333333333333334,
+        "source_recall@5": 1.0,
+        "hit@10": 1.0,
+        "evidence_recall@10": 1.0,
+        "source_recall@10": 1.0,
+        "mrr": 0.8541666666666666,
+        "_count": 6.0
+      },
+      "simple_fact": {
+        "hit@1": 0.875,
+        "evidence_recall@1": 0.875,
+        "source_recall@1": 1.0,
+        "hit@3": 1.0,
+        "evidence_recall@3": 1.0,
+        "source_recall@3": 1.0,
+        "hit@5": 1.0,
+        "evidence_recall@5": 1.0,
+        "source_recall@5": 1.0,
+        "hit@10": 1.0,
+        "evidence_recall@10": 1.0,
+        "source_recall@10": 1.0,
+        "mrr": 0.9375,
+        "_count": 8.0
+      }
+    },
+    "raw_overall": {
+      "hit@1": 0.7352941176470589,
+      "evidence_recall@1": 0.6911764705882353,
+      "source_recall@1": 0.8676470588235294,
+      "hit@3": 0.8529411764705882,
+      "evidence_recall@3": 0.8235294117647058,
+      "source_recall@3": 0.8970588235294118,
+      "hit@5": 0.8823529411764706,
+      "evidence_recall@5": 0.8676470588235294,
+      "source_recall@5": 0.9264705882352942,
+      "hit@10": 0.9117647058823529,
+      "evidence_recall@10": 0.8970588235294118,
+      "source_recall@10": 0.9264705882352942,
+      "mrr": 0.8051470588235294
+    },
+    "raw_by_category": {
+      "anaphora": {
+        "hit@1": 0.2,
+        "evidence_recall@1": 0.2,
+        "source_recall@1": 0.2,
+        "hit@3": 0.4,
+        "evidence_recall@3": 0.4,
+        "source_recall@3": 0.4,
+        "hit@5": 0.4,
+        "evidence_recall@5": 0.4,
+        "source_recall@5": 0.6,
+        "hit@10": 0.4,
+        "evidence_recall@10": 0.4,
+        "source_recall@10": 0.6,
+        "mrr": 0.3,
+        "_count": 5.0
+      },
+      "cross_chunk": {
+        "hit@1": 0.6,
+        "evidence_recall@1": 0.3,
+        "source_recall@1": 0.9,
+        "hit@3": 0.8,
+        "evidence_recall@3": 0.6,
+        "source_recall@3": 0.9,
+        "hit@5": 1.0,
+        "evidence_recall@5": 0.9,
+        "source_recall@5": 0.9,
+        "hit@10": 1.0,
+        "evidence_recall@10": 0.9,
+        "source_recall@10": 0.9,
+        "mrr": 0.75,
+        "_count": 5.0
+      },
+      "keyword": {
+        "hit@1": 0.8,
+        "evidence_recall@1": 0.8,
+        "source_recall@1": 1.0,
+        "hit@3": 1.0,
+        "evidence_recall@3": 1.0,
+        "source_recall@3": 1.0,
+        "hit@5": 1.0,
+        "evidence_recall@5": 1.0,
+        "source_recall@5": 1.0,
+        "hit@10": 1.0,
+        "evidence_recall@10": 1.0,
+        "source_recall@10": 1.0,
+        "mrr": 0.9,
+        "_count": 5.0
+      },
+      "multi_turn": {
+        "hit@1": 1.0,
+        "evidence_recall@1": 1.0,
+        "source_recall@1": 1.0,
+        "hit@3": 1.0,
+        "evidence_recall@3": 1.0,
+        "source_recall@3": 1.0,
+        "hit@5": 1.0,
+        "evidence_recall@5": 1.0,
+        "source_recall@5": 1.0,
+        "hit@10": 1.0,
+        "evidence_recall@10": 1.0,
+        "source_recall@10": 1.0,
+        "mrr": 1.0,
+        "_count": 5.0
+      },
+      "proper_noun": {
+        "hit@1": 0.8333333333333334,
+        "evidence_recall@1": 0.8333333333333334,
+        "source_recall@1": 1.0,
+        "hit@3": 0.8333333333333334,
+        "evidence_recall@3": 0.8333333333333334,
+        "source_recall@3": 1.0,
+        "hit@5": 0.8333333333333334,
+        "evidence_recall@5": 0.8333333333333334,
+        "source_recall@5": 1.0,
+        "hit@10": 1.0,
+        "evidence_recall@10": 1.0,
+        "source_recall@10": 1.0,
+        "mrr": 0.8541666666666666,
+        "_count": 6.0
+      },
+      "simple_fact": {
+        "hit@1": 0.875,
+        "evidence_recall@1": 0.875,
+        "source_recall@1": 1.0,
+        "hit@3": 1.0,
+        "evidence_recall@3": 1.0,
+        "source_recall@3": 1.0,
+        "hit@5": 1.0,
+        "evidence_recall@5": 1.0,
+        "source_recall@5": 1.0,
+        "hit@10": 1.0,
+        "evidence_recall@10": 1.0,
+        "source_recall@10": 1.0,
+        "mrr": 0.9375,
+        "_count": 8.0
+      }
+    },
+    "no_answer": {
+      "count": 6.0,
+      "no_hits_rate": 1.0,
+      "low_relevance_rate": 0.0
+    }
+  },
+  "answers": null,
+  "per_question": [
+    {
+      "id": "fact-01",
+      "category": "simple_fact",
+      "dataset": "面试八股文",
+      "question": "员工手册规定的标准工作时间是几点到几点？",
+      "abstain_expected": false,
+      "retrieval": {
+        "hit@1": 1.0,
+        "evidence_recall@1": 1.0,
+        "source_recall@1": 1.0,
+        "hit@3": 1.0,
+        "evidence_recall@3": 1.0,
+        "source_recall@3": 1.0,
+        "hit@5": 1.0,
+        "evidence_recall@5": 1.0,
+        "source_recall@5": 1.0,
+        "hit@10": 1.0,
+        "evidence_recall@10": 1.0,
+        "source_recall@10": 1.0,
+        "mrr": 1.0
+      },
+      "retrieval_raw": {
+        "hit@1": 1.0,
+        "evidence_recall@1": 1.0,
+        "source_recall@1": 1.0,
+        "hit@3": 1.0,
+        "evidence_recall@3": 1.0,
+        "source_recall@3": 1.0,
+        "hit@5": 1.0,
+        "evidence_recall@5": 1.0,
+        "source_recall@5": 1.0,
+        "hit@10": 1.0,
+        "evidence_recall@10": 1.0,
+        "source_recall@10": 1.0,
+        "mrr": 1.0
+      },
+      "hit_count": 8,
+      "no_hits": false,
+      "reason": "no_score",
+      "low_relevance": false,
+      "detail_k": 5,
+      "matched_evidence": [
+        "工作时间为周一至周五上午九点到下午六点"
+      ],
+      "missing_evidence": [],
+      "hits": [
+        {
+          "rank": 1,
+          "document_name": "员工手册.txt",
+          "chunk_id": "857e600e79465426bfea242951776113",
+          "score": 0.6102536,
+          "rerank_score": null,
+          "matched_evidence": [
+            "工作时间为周一至周五上午九点到下午六点"
+          ]
+        },
+        {
+          "rank": 2,
+          "document_name": "HTTP_HTTPS.md",
+          "chunk_id": "3f05c70a875059c6b308cca2be53e1c3",
+          "score": 0.33690065,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 3,
+          "document_name": "axios.md",
+          "chunk_id": "0ee7bf96eb3958faad77d27b21c7b08e",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 4,
+          "document_name": "HTTP_HTTPS.md",
+          "chunk_id": "4cf06b6cbbe857419a2d8f50f867ddaa",
+          "score": 0.33009568,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 5,
+          "document_name": "BOM.md",
+          "chunk_id": "ddc569ce93a15cb6a73bcbcffbe18633",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 6,
+          "document_name": "HTTP_HTTPS.md",
+          "chunk_id": "c359071acc105d4b9d4da764bc640ec1",
+          "score": 0.3223523,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 7,
+          "document_name": "axios.md",
+          "chunk_id": "0aeeca2467705e08a2427ff10a6a26a8",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 8,
+          "document_name": "BOM.md",
+          "chunk_id": "34d861ffa45c568b97a959dd5054c61c",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        }
+      ]
+    },
+    {
+      "id": "fact-02",
+      "category": "simple_fact",
+      "dataset": "面试八股文",
+      "question": "迟到或早退超过三十分钟会怎么处理？",
+      "abstain_expected": false,
+      "retrieval": {
+        "hit@1": 1.0,
+        "evidence_recall@1": 1.0,
+        "source_recall@1": 1.0,
+        "hit@3": 1.0,
+        "evidence_recall@3": 1.0,
+        "source_recall@3": 1.0,
+        "hit@5": 1.0,
+        "evidence_recall@5": 1.0,
+        "source_recall@5": 1.0,
+        "hit@10": 1.0,
+        "evidence_recall@10": 1.0,
+        "source_recall@10": 1.0,
+        "mrr": 1.0
+      },
+      "retrieval_raw": {
+        "hit@1": 1.0,
+        "evidence_recall@1": 1.0,
+        "source_recall@1": 1.0,
+        "hit@3": 1.0,
+        "evidence_recall@3": 1.0,
+        "source_recall@3": 1.0,
+        "hit@5": 1.0,
+        "evidence_recall@5": 1.0,
+        "source_recall@5": 1.0,
+        "hit@10": 1.0,
+        "evidence_recall@10": 1.0,
+        "source_recall@10": 1.0,
+        "mrr": 1.0
+      },
+      "hit_count": 3,
+      "no_hits": false,
+      "reason": "no_score",
+      "low_relevance": false,
+      "detail_k": 5,
+      "matched_evidence": [
+        "迟到或早退超过三十分钟按半天事假处理"
+      ],
+      "missing_evidence": [],
+      "hits": [
+        {
+          "rank": 1,
+          "document_name": "员工手册.txt",
+          "chunk_id": "857e600e79465426bfea242951776113",
+          "score": 0.46691784,
+          "rerank_score": null,
+          "matched_evidence": [
+            "迟到或早退超过三十分钟按半天事假处理"
+          ]
+        },
+        {
+          "rank": 2,
+          "document_name": "animation.md",
+          "chunk_id": "088d1382627850a6807954fa088b0a28",
+          "score": 0.34528005,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 3,
+          "document_name": "axios.md",
+          "chunk_id": "0aeeca2467705e08a2427ff10a6a26a8",
+          "score": 0.3210221,
+          "rerank_score": null,
+          "matched_evidence": []
+        }
+      ]
+    },
+    {
+      "id": "fact-03",
+      "category": "simple_fact",
+      "dataset": "面试八股文",
+      "question": "员工每年有多少天带薪年假？什么时候可以使用？",
+      "abstain_expected": false,
+      "retrieval": {
+        "hit@1": 1.0,
+        "evidence_recall@1": 1.0,
+        "source_recall@1": 1.0,
+        "hit@3": 1.0,
+        "evidence_recall@3": 1.0,
+        "source_recall@3": 1.0,
+        "hit@5": 1.0,
+        "evidence_recall@5": 1.0,
+        "source_recall@5": 1.0,
+        "hit@10": 1.0,
+        "evidence_recall@10": 1.0,
+        "source_recall@10": 1.0,
+        "mrr": 1.0
+      },
+      "retrieval_raw": {
+        "hit@1": 1.0,
+        "evidence_recall@1": 1.0,
+        "source_recall@1": 1.0,
+        "hit@3": 1.0,
+        "evidence_recall@3": 1.0,
+        "source_recall@3": 1.0,
+        "hit@5": 1.0,
+        "evidence_recall@5": 1.0,
+        "source_recall@5": 1.0,
+        "hit@10": 1.0,
+        "evidence_recall@10": 1.0,
+        "source_recall@10": 1.0,
+        "mrr": 1.0
+      },
+      "hit_count": 9,
+      "no_hits": false,
+      "reason": "no_score",
+      "low_relevance": false,
+      "detail_k": 5,
+      "matched_evidence": [
+        "员工每年享有十五天带薪年假，入职满一年后即可使用"
+      ],
+      "missing_evidence": [],
+      "hits": [
+        {
+          "rank": 1,
+          "document_name": "员工手册.txt",
+          "chunk_id": "857e600e79465426bfea242951776113",
+          "score": 0.7101494,
+          "rerank_score": null,
+          "matched_evidence": [
+            "员工每年享有十五天带薪年假，入职满一年后即可使用"
+          ]
+        },
+        {
+          "rank": 2,
+          "document_name": "axios.md",
+          "chunk_id": "f220954993615598aed4e99a457ae25f",
+          "score": 0.36253238,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 3,
+          "document_name": "proxy.md",
+          "chunk_id": "e19d293e01b75853ad40d09a96bd275f",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 4,
+          "document_name": "axios.md",
+          "chunk_id": "0aeeca2467705e08a2427ff10a6a26a8",
+          "score": 0.33162946,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 5,
+          "document_name": "axios.md",
+          "chunk_id": "19fdaa3dd11a5f2caab1ab1551942f98",
+          "score": 0.32670438,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 6,
+          "document_name": "axios.md",
+          "chunk_id": "90103c2ca9ab5a899aebbf8500134725",
+          "score": 0.31666785,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 7,
+          "document_name": "axios.md",
+          "chunk_id": "f8ff8cb12d025334bba18aeed39c12e4",
+          "score": 0.31478006,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 8,
+          "document_name": "proxy.md",
+          "chunk_id": "c6666545e98a5bbea9adf33b19c4db22",
+          "score": 0.31091815,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 9,
+          "document_name": "axios.md",
+          "chunk_id": "ad015de9a65052ddbff2126f2e308d1d",
+          "score": 0.30884212,
+          "rerank_score": null,
+          "matched_evidence": []
+        }
+      ]
+    },
+    {
+      "id": "fact-04",
+      "category": "simple_fact",
+      "dataset": "面试八股文",
+      "question": "公司每月什么时候发工资？",
+      "abstain_expected": false,
+      "retrieval": {
+        "hit@1": 1.0,
+        "evidence_recall@1": 1.0,
+        "source_recall@1": 1.0,
+        "hit@3": 1.0,
+        "evidence_recall@3": 1.0,
+        "source_recall@3": 1.0,
+        "hit@5": 1.0,
+        "evidence_recall@5": 1.0,
+        "source_recall@5": 1.0,
+        "hit@10": 1.0,
+        "evidence_recall@10": 1.0,
+        "source_recall@10": 1.0,
+        "mrr": 1.0
+      },
+      "retrieval_raw": {
+        "hit@1": 1.0,
+        "evidence_recall@1": 1.0,
+        "source_recall@1": 1.0,
+        "hit@3": 1.0,
+        "evidence_recall@3": 1.0,
+        "source_recall@3": 1.0,
+        "hit@5": 1.0,
+        "evidence_recall@5": 1.0,
+        "source_recall@5": 1.0,
+        "hit@10": 1.0,
+        "evidence_recall@10": 1.0,
+        "source_recall@10": 1.0,
+        "mrr": 1.0
+      },
+      "hit_count": 9,
+      "no_hits": false,
+      "reason": "no_score",
+      "low_relevance": false,
+      "detail_k": 5,
+      "matched_evidence": [
+        "公司每月十号发放上月工资"
+      ],
+      "missing_evidence": [],
+      "hits": [
+        {
+          "rank": 1,
+          "document_name": "员工手册.txt",
+          "chunk_id": "857e600e79465426bfea242951776113",
+          "score": 0.55459183,
+          "rerank_score": null,
+          "matched_evidence": [
+            "公司每月十号发放上月工资"
+          ]
+        },
+        {
+          "rank": 2,
+          "document_name": "animation.md",
+          "chunk_id": "f0d1d73b20fc5bb29fb0df37edbe25e2",
+          "score": 0.32216197,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 3,
+          "document_name": "proxy.md",
+          "chunk_id": "2148a9f1bba15bf7a6cd6395aa060617",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 4,
+          "document_name": "axios.md",
+          "chunk_id": "eee42c30639a54b0a7fa32c3bce7bfff",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 5,
+          "document_name": "prototype.md",
+          "chunk_id": "293848c5fc7d527f99031ec7d7199f55",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 6,
+          "document_name": "HTTP_HTTPS.md",
+          "chunk_id": "3f05c70a875059c6b308cca2be53e1c3",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 7,
+          "document_name": "proxy.md",
+          "chunk_id": "a6325d69829058c2936606ac111db67a",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 8,
+          "document_name": "axios.md",
+          "chunk_id": "90103c2ca9ab5a899aebbf8500134725",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 9,
+          "document_name": "animation.md",
+          "chunk_id": "5a49c29578c75c249255a1e7419623a8",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        }
+      ]
+    },
+    {
+      "id": "fact-05",
+      "category": "simple_fact",
+      "dataset": "面试八股文",
+      "question": "HTTP 和 HTTPS 的默认端口分别是什么？",
+      "abstain_expected": false,
+      "retrieval": {
+        "hit@1": 1.0,
+        "evidence_recall@1": 1.0,
+        "source_recall@1": 1.0,
+        "hit@3": 1.0,
+        "evidence_recall@3": 1.0,
+        "source_recall@3": 1.0,
+        "hit@5": 1.0,
+        "evidence_recall@5": 1.0,
+        "source_recall@5": 1.0,
+        "hit@10": 1.0,
+        "evidence_recall@10": 1.0,
+        "source_recall@10": 1.0,
+        "mrr": 1.0
+      },
+      "retrieval_raw": {
+        "hit@1": 1.0,
+        "evidence_recall@1": 1.0,
+        "source_recall@1": 1.0,
+        "hit@3": 1.0,
+        "evidence_recall@3": 1.0,
+        "source_recall@3": 1.0,
+        "hit@5": 1.0,
+        "evidence_recall@5": 1.0,
+        "source_recall@5": 1.0,
+        "hit@10": 1.0,
+        "evidence_recall@10": 1.0,
+        "source_recall@10": 1.0,
+        "mrr": 1.0
+      },
+      "hit_count": 10,
+      "no_hits": false,
+      "reason": "no_score",
+      "low_relevance": false,
+      "detail_k": 5,
+      "matched_evidence": [
+        "HTTP是80，HTTPS是443"
+      ],
+      "missing_evidence": [],
+      "hits": [
+        {
+          "rank": 1,
+          "document_name": "HTTP_HTTPS.md",
+          "chunk_id": "4cf06b6cbbe857419a2d8f50f867ddaa",
+          "score": 0.77003354,
+          "rerank_score": null,
+          "matched_evidence": [
+            "HTTP是80，HTTPS是443"
+          ]
+        },
+        {
+          "rank": 2,
+          "document_name": "HTTP_HTTPS.md",
+          "chunk_id": "3f05c70a875059c6b308cca2be53e1c3",
+          "score": 0.6621773,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 3,
+          "document_name": "prototype.md",
+          "chunk_id": "962960a6180754b1a910d4625483bf03",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 4,
+          "document_name": "HTTP_HTTPS.md",
+          "chunk_id": "c359071acc105d4b9d4da764bc640ec1",
+          "score": 0.60634065,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 5,
+          "document_name": "prototype.md",
+          "chunk_id": "5418265e15d85e53bdd2742e49cb330d",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 6,
+          "document_name": "HTTP_HTTPS.md",
+          "chunk_id": "0d2a4ec5a13054159e150e3e3416ec22",
+          "score": 0.5967088,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 7,
+          "document_name": "animation.md",
+          "chunk_id": "b947f9cca781560080379182a8711c9c",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 8,
+          "document_name": "HTTP_HTTPS.md",
+          "chunk_id": "f6b3e9998dd6589980c371f9894c5be2",
+          "score": 0.54217404,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 9,
+          "document_name": "prototype.md",
+          "chunk_id": "293848c5fc7d527f99031ec7d7199f55",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 10,
+          "document_name": "BOM.md",
+          "chunk_id": "b3ed72502d725f54846ade29661f1aa4",
+          "score": 0.37239826,
+          "rerank_score": null,
+          "matched_evidence": []
+        }
+      ]
+    },
+    {
+      "id": "fact-06",
+      "category": "simple_fact",
+      "dataset": "面试八股文",
+      "question": "HTTPS 是建立在什么协议之上的？",
+      "abstain_expected": false,
+      "retrieval": {
+        "hit@1": 1.0,
+        "evidence_recall@1": 1.0,
+        "source_recall@1": 1.0,
+        "hit@3": 1.0,
+        "evidence_recall@3": 1.0,
+        "source_recall@3": 1.0,
+        "hit@5": 1.0,
+        "evidence_recall@5": 1.0,
+        "source_recall@5": 1.0,
+        "hit@10": 1.0,
+        "evidence_recall@10": 1.0,
+        "source_recall@10": 1.0,
+        "mrr": 1.0
+      },
+      "retrieval_raw": {
+        "hit@1": 1.0,
+        "evidence_recall@1": 1.0,
+        "source_recall@1": 1.0,
+        "hit@3": 1.0,
+        "evidence_recall@3": 1.0,
+        "source_recall@3": 1.0,
+        "hit@5": 1.0,
+        "evidence_recall@5": 1.0,
+        "source_recall@5": 1.0,
+        "hit@10": 1.0,
+        "evidence_recall@10": 1.0,
+        "source_recall@10": 1.0,
+        "mrr": 1.0
+      },
+      "hit_count": 10,
+      "no_hits": false,
+      "reason": "no_score",
+      "low_relevance": false,
+      "detail_k": 5,
+      "matched_evidence": [
+        "即 HTTPS = HTTP + SSL/TLS"
+      ],
+      "missing_evidence": [],
+      "hits": [
+        {
+          "rank": 1,
+          "document_name": "HTTP_HTTPS.md",
+          "chunk_id": "f6b3e9998dd6589980c371f9894c5be2",
+          "score": 0.7180007,
+          "rerank_score": null,
+          "matched_evidence": [
+            "即 HTTPS = HTTP + SSL/TLS"
+          ]
+        },
+        {
+          "rank": 2,
+          "document_name": "HTTP_HTTPS.md",
+          "chunk_id": "3f05c70a875059c6b308cca2be53e1c3",
+          "score": 0.62236494,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 3,
+          "document_name": "HTTP_HTTPS.md",
+          "chunk_id": "4cf06b6cbbe857419a2d8f50f867ddaa",
+          "score": 0.61189663,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 4,
+          "document_name": "HTTP_HTTPS.md",
+          "chunk_id": "0d2a4ec5a13054159e150e3e3416ec22",
+          "score": 0.54731286,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 5,
+          "document_name": "prototype.md",
+          "chunk_id": "293848c5fc7d527f99031ec7d7199f55",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 6,
+          "document_name": "proxy.md",
+          "chunk_id": "a6325d69829058c2936606ac111db67a",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 7,
+          "document_name": "HTTP_HTTPS.md",
+          "chunk_id": "c359071acc105d4b9d4da764bc640ec1",
+          "score": 0.5374622,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 8,
+          "document_name": "axios.md",
+          "chunk_id": "90103c2ca9ab5a899aebbf8500134725",
+          "score": 0.3932702,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 9,
+          "document_name": "BOM.md",
+          "chunk_id": "0d5cbd1990c25ddfacdef4c686926d53",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 10,
+          "document_name": "axios.md",
+          "chunk_id": "f8ff8cb12d025334bba18aeed39c12e4",
+          "score": 0.3200056,
+          "rerank_score": null,
+          "matched_evidence": []
+        }
+      ]
+    },
+    {
+      "id": "fact-07",
+      "category": "simple_fact",
+      "dataset": "面试八股文",
+      "question": "axios 封装示例里设置的请求超时时间是多少毫秒？",
+      "abstain_expected": false,
+      "retrieval": {
+        "hit@1": 0.0,
+        "evidence_recall@1": 0.0,
+        "source_recall@1": 1.0,
+        "hit@3": 1.0,
+        "evidence_recall@3": 1.0,
+        "source_recall@3": 1.0,
+        "hit@5": 1.0,
+        "evidence_recall@5": 1.0,
+        "source_recall@5": 1.0,
+        "hit@10": 1.0,
+        "evidence_recall@10": 1.0,
+        "source_recall@10": 1.0,
+        "mrr": 0.5
+      },
+      "retrieval_raw": {
+        "hit@1": 0.0,
+        "evidence_recall@1": 0.0,
+        "source_recall@1": 1.0,
+        "hit@3": 1.0,
+        "evidence_recall@3": 1.0,
+        "source_recall@3": 1.0,
+        "hit@5": 1.0,
+        "evidence_recall@5": 1.0,
+        "source_recall@5": 1.0,
+        "hit@10": 1.0,
+        "evidence_recall@10": 1.0,
+        "source_recall@10": 1.0,
+        "mrr": 0.5
+      },
+      "hit_count": 10,
+      "no_hits": false,
+      "reason": "no_score",
+      "low_relevance": false,
+      "detail_k": 5,
+      "matched_evidence": [
+        "timeout: 30000"
+      ],
+      "missing_evidence": [],
+      "hits": [
+        {
+          "rank": 1,
+          "document_name": "axios.md",
+          "chunk_id": "6a34564481e25241a1e4bb3585fb31c3",
+          "score": 0.61217344,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 2,
+          "document_name": "axios.md",
+          "chunk_id": "0aeeca2467705e08a2427ff10a6a26a8",
+          "score": 0.72119564,
+          "rerank_score": null,
+          "matched_evidence": [
+            "timeout: 30000"
+          ]
+        },
+        {
+          "rank": 3,
+          "document_name": "axios.md",
+          "chunk_id": "ad015de9a65052ddbff2126f2e308d1d",
+          "score": 0.57495457,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 4,
+          "document_name": "axios.md",
+          "chunk_id": "f8a892df43975e159142adcf5f67d4a6",
+          "score": 0.543805,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 5,
+          "document_name": "axios.md",
+          "chunk_id": "f220954993615598aed4e99a457ae25f",
+          "score": 0.5557448,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 6,
+          "document_name": "axios.md",
+          "chunk_id": "0ee7bf96eb3958faad77d27b21c7b08e",
+          "score": 0.5316714,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 7,
+          "document_name": "axios.md",
+          "chunk_id": "eee42c30639a54b0a7fa32c3bce7bfff",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 8,
+          "document_name": "axios.md",
+          "chunk_id": "0ceb8d20e8f85a09b854b9f58bad187a",
+          "score": 0.57922614,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 9,
+          "document_name": "axios.md",
+          "chunk_id": "f8ff8cb12d025334bba18aeed39c12e4",
+          "score": 0.5720992,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 10,
+          "document_name": "axios.md",
+          "chunk_id": "dbf24fa2ab1751d19d5677d7f6bfce58",
+          "score": 0.5492499,
+          "rerank_score": null,
+          "matched_evidence": []
+        }
+      ]
+    },
+    {
+      "id": "kw-01",
+      "category": "keyword",
+      "dataset": "面试八股文",
+      "question": "axios.interceptors.request.use 是用来注册什么的？",
+      "abstain_expected": false,
+      "retrieval": {
+        "hit@1": 1.0,
+        "evidence_recall@1": 1.0,
+        "source_recall@1": 1.0,
+        "hit@3": 1.0,
+        "evidence_recall@3": 1.0,
+        "source_recall@3": 1.0,
+        "hit@5": 1.0,
+        "evidence_recall@5": 1.0,
+        "source_recall@5": 1.0,
+        "hit@10": 1.0,
+        "evidence_recall@10": 1.0,
+        "source_recall@10": 1.0,
+        "mrr": 1.0
+      },
+      "retrieval_raw": {
+        "hit@1": 1.0,
+        "evidence_recall@1": 1.0,
+        "source_recall@1": 1.0,
+        "hit@3": 1.0,
+        "evidence_recall@3": 1.0,
+        "source_recall@3": 1.0,
+        "hit@5": 1.0,
+        "evidence_recall@5": 1.0,
+        "source_recall@5": 1.0,
+        "hit@10": 1.0,
+        "evidence_recall@10": 1.0,
+        "source_recall@10": 1.0,
+        "mrr": 1.0
+      },
+      "hit_count": 10,
+      "no_hits": false,
+      "reason": "no_score",
+      "low_relevance": false,
+      "detail_k": 5,
+      "matched_evidence": [
+        "axios.interceptors.request.use("
+      ],
+      "missing_evidence": [],
+      "hits": [
+        {
+          "rank": 1,
+          "document_name": "axios.md",
+          "chunk_id": "dbf24fa2ab1751d19d5677d7f6bfce58",
+          "score": 0.61801744,
+          "rerank_score": null,
+          "matched_evidence": [
+            "axios.interceptors.request.use("
+          ]
+        },
+        {
+          "rank": 2,
+          "document_name": "axios.md",
+          "chunk_id": "90103c2ca9ab5a899aebbf8500134725",
+          "score": 0.47310776,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 3,
+          "document_name": "axios.md",
+          "chunk_id": "f220954993615598aed4e99a457ae25f",
+          "score": 0.5206133,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 4,
+          "document_name": "animation.md",
+          "chunk_id": "b73169ad27e5569fb62c7c48cb8fe903",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 5,
+          "document_name": "axios.md",
+          "chunk_id": "25bc15998ff05c35b481d5c3c7bef32a",
+          "score": 0.5137274,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 6,
+          "document_name": "prototype.md",
+          "chunk_id": "293848c5fc7d527f99031ec7d7199f55",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 7,
+          "document_name": "axios.md",
+          "chunk_id": "f8ff8cb12d025334bba18aeed39c12e4",
+          "score": 0.5062901,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 8,
+          "document_name": "HTTP_HTTPS.md",
+          "chunk_id": "3f05c70a875059c6b308cca2be53e1c3",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 9,
+          "document_name": "proxy.md",
+          "chunk_id": "a6325d69829058c2936606ac111db67a",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 10,
+          "document_name": "axios.md",
+          "chunk_id": "19fdaa3dd11a5f2caab1ab1551942f98",
+          "score": 0.45824486,
+          "rerank_score": null,
+          "matched_evidence": []
+        }
+      ]
+    },
+    {
+      "id": "kw-02",
+      "category": "keyword",
+      "dataset": "面试八股文",
+      "question": "axios.interceptors.response.use 是用来注册什么的？",
+      "abstain_expected": false,
+      "retrieval": {
+        "hit@1": 0.0,
+        "evidence_recall@1": 0.0,
+        "source_recall@1": 1.0,
+        "hit@3": 1.0,
+        "evidence_recall@3": 1.0,
+        "source_recall@3": 1.0,
+        "hit@5": 1.0,
+        "evidence_recall@5": 1.0,
+        "source_recall@5": 1.0,
+        "hit@10": 1.0,
+        "evidence_recall@10": 1.0,
+        "source_recall@10": 1.0,
+        "mrr": 0.5
+      },
+      "retrieval_raw": {
+        "hit@1": 0.0,
+        "evidence_recall@1": 0.0,
+        "source_recall@1": 1.0,
+        "hit@3": 1.0,
+        "evidence_recall@3": 1.0,
+        "source_recall@3": 1.0,
+        "hit@5": 1.0,
+        "evidence_recall@5": 1.0,
+        "source_recall@5": 1.0,
+        "hit@10": 1.0,
+        "evidence_recall@10": 1.0,
+        "source_recall@10": 1.0,
+        "mrr": 0.5
+      },
+      "hit_count": 10,
+      "no_hits": false,
+      "reason": "no_score",
+      "low_relevance": false,
+      "detail_k": 5,
+      "matched_evidence": [
+        "axios.interceptors.response.use("
+      ],
+      "missing_evidence": [],
+      "hits": [
+        {
+          "rank": 1,
+          "document_name": "axios.md",
+          "chunk_id": "90103c2ca9ab5a899aebbf8500134725",
+          "score": 0.4720439,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 2,
+          "document_name": "axios.md",
+          "chunk_id": "25bc15998ff05c35b481d5c3c7bef32a",
+          "score": 0.58819026,
+          "rerank_score": null,
+          "matched_evidence": [
+            "axios.interceptors.response.use("
+          ]
+        },
+        {
+          "rank": 3,
+          "document_name": "animation.md",
+          "chunk_id": "b73169ad27e5569fb62c7c48cb8fe903",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 4,
+          "document_name": "axios.md",
+          "chunk_id": "dbf24fa2ab1751d19d5677d7f6bfce58",
+          "score": 0.5666703,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 5,
+          "document_name": "prototype.md",
+          "chunk_id": "293848c5fc7d527f99031ec7d7199f55",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 6,
+          "document_name": "axios.md",
+          "chunk_id": "f8ff8cb12d025334bba18aeed39c12e4",
+          "score": 0.5172287,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 7,
+          "document_name": "HTTP_HTTPS.md",
+          "chunk_id": "3f05c70a875059c6b308cca2be53e1c3",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 8,
+          "document_name": "axios.md",
+          "chunk_id": "f220954993615598aed4e99a457ae25f",
+          "score": 0.500831,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 9,
+          "document_name": "proxy.md",
+          "chunk_id": "a6325d69829058c2936606ac111db67a",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 10,
+          "document_name": "axios.md",
+          "chunk_id": "eee42c30639a54b0a7fa32c3bce7bfff",
+          "score": 0.45575386,
+          "rerank_score": null,
+          "matched_evidence": []
+        }
+      ]
+    },
+    {
+      "id": "kw-03",
+      "category": "keyword",
+      "dataset": "面试八股文",
+      "question": "用 Object.defineProperty 实现响应式时，劫持能做到什么程度？",
+      "abstain_expected": false,
+      "retrieval": {
+        "hit@1": 1.0,
+        "evidence_recall@1": 1.0,
+        "source_recall@1": 1.0,
+        "hit@3": 1.0,
+        "evidence_recall@3": 1.0,
+        "source_recall@3": 1.0,
+        "hit@5": 1.0,
+        "evidence_recall@5": 1.0,
+        "source_recall@5": 1.0,
+        "hit@10": 1.0,
+        "evidence_recall@10": 1.0,
+        "source_recall@10": 1.0,
+        "mrr": 1.0
+      },
+      "retrieval_raw": {
+        "hit@1": 1.0,
+        "evidence_recall@1": 1.0,
+        "source_recall@1": 1.0,
+        "hit@3": 1.0,
+        "evidence_recall@3": 1.0,
+        "source_recall@3": 1.0,
+        "hit@5": 1.0,
+        "evidence_recall@5": 1.0,
+        "source_recall@5": 1.0,
+        "hit@10": 1.0,
+        "evidence_recall@10": 1.0,
+        "source_recall@10": 1.0,
+        "mrr": 1.0
+      },
+      "hit_count": 10,
+      "no_hits": false,
+      "reason": "no_score",
+      "low_relevance": false,
+      "detail_k": 5,
+      "matched_evidence": [
+        "`Object.defineProperty`只能遍历对象属性进行劫持"
+      ],
+      "missing_evidence": [],
+      "hits": [
+        {
+          "rank": 1,
+          "document_name": "proxy.md",
+          "chunk_id": "8d13b224f3935fa2b95bc6b04f247ba0",
+          "score": 0.66282237,
+          "rerank_score": null,
+          "matched_evidence": [
+            "`Object.defineProperty`只能遍历对象属性进行劫持"
+          ]
+        },
+        {
+          "rank": 2,
+          "document_name": "proxy.md",
+          "chunk_id": "727dba71361954c88c0c31036c78652a",
+          "score": 0.6214853,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 3,
+          "document_name": "proxy.md",
+          "chunk_id": "e19d293e01b75853ad40d09a96bd275f",
+          "score": 0.5073667,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 4,
+          "document_name": "proxy.md",
+          "chunk_id": "4c849dac8086532bb047534b1e5169e1",
+          "score": 0.5597209,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 5,
+          "document_name": "proxy.md",
+          "chunk_id": "c6666545e98a5bbea9adf33b19c4db22",
+          "score": 0.5733954,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 6,
+          "document_name": "proxy.md",
+          "chunk_id": "72cd12a7b7855441bff5b2eb5c3cf66a",
+          "score": 0.51578224,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 7,
+          "document_name": "proxy.md",
+          "chunk_id": "092994b7b19e52b8899d21c39f27c381",
+          "score": 0.5872827,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 8,
+          "document_name": "proxy.md",
+          "chunk_id": "f3cd514441f052a9b42e7281c4105cbd",
+          "score": 0.5649316,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 9,
+          "document_name": "axios.md",
+          "chunk_id": "f8a892df43975e159142adcf5f67d4a6",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 10,
+          "document_name": "animation.md",
+          "chunk_id": "c611ba9930545d5a947ff8bfeaef35e1",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        }
+      ]
+    },
+    {
+      "id": "kw-04",
+      "category": "keyword",
+      "dataset": "面试八股文",
+      "question": "Proxy 一共有多少种拦截方法？",
+      "abstain_expected": false,
+      "retrieval": {
+        "hit@1": 1.0,
+        "evidence_recall@1": 1.0,
+        "source_recall@1": 1.0,
+        "hit@3": 1.0,
+        "evidence_recall@3": 1.0,
+        "source_recall@3": 1.0,
+        "hit@5": 1.0,
+        "evidence_recall@5": 1.0,
+        "source_recall@5": 1.0,
+        "hit@10": 1.0,
+        "evidence_recall@10": 1.0,
+        "source_recall@10": 1.0,
+        "mrr": 1.0
+      },
+      "retrieval_raw": {
+        "hit@1": 1.0,
+        "evidence_recall@1": 1.0,
+        "source_recall@1": 1.0,
+        "hit@3": 1.0,
+        "evidence_recall@3": 1.0,
+        "source_recall@3": 1.0,
+        "hit@5": 1.0,
+        "evidence_recall@5": 1.0,
+        "source_recall@5": 1.0,
+        "hit@10": 1.0,
+        "evidence_recall@10": 1.0,
+        "source_recall@10": 1.0,
+        "mrr": 1.0
+      },
+      "hit_count": 10,
+      "no_hits": false,
+      "reason": "no_score",
+      "low_relevance": false,
+      "detail_k": 5,
+      "matched_evidence": [
+        "`Proxy`有多达13种拦截方法"
+      ],
+      "missing_evidence": [],
+      "hits": [
+        {
+          "rank": 1,
+          "document_name": "proxy.md",
+          "chunk_id": "e19d293e01b75853ad40d09a96bd275f",
+          "score": 0.48879814,
+          "rerank_score": null,
+          "matched_evidence": [
+            "`Proxy`有多达13种拦截方法"
+          ]
+        },
+        {
+          "rank": 2,
+          "document_name": "proxy.md",
+          "chunk_id": "f3cd514441f052a9b42e7281c4105cbd",
+          "score": 0.429502,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 3,
+          "document_name": "proxy.md",
+          "chunk_id": "2148a9f1bba15bf7a6cd6395aa060617",
+          "score": 0.40701768,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 4,
+          "document_name": "proxy.md",
+          "chunk_id": "92a27a67804a59eba7a34942d8722e40",
+          "score": 0.39381602,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 5,
+          "document_name": "axios.md",
+          "chunk_id": "f8a892df43975e159142adcf5f67d4a6",
+          "score": 0.42513788,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 6,
+          "document_name": "proxy.md",
+          "chunk_id": "72cd12a7b7855441bff5b2eb5c3cf66a",
+          "score": 0.3993707,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 7,
+          "document_name": "axios.md",
+          "chunk_id": "f8ff8cb12d025334bba18aeed39c12e4",
+          "score": 0.355061,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 8,
+          "document_name": "axios.md",
+          "chunk_id": "25bc15998ff05c35b481d5c3c7bef32a",
+          "score": 0.47955686,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 9,
+          "document_name": "axios.md",
+          "chunk_id": "dbf24fa2ab1751d19d5677d7f6bfce58",
+          "score": 0.46261442,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 10,
+          "document_name": "proxy.md",
+          "chunk_id": "a6325d69829058c2936606ac111db67a",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        }
+      ]
+    },
+    {
+      "id": "pn-01",
+      "category": "proper_noun",
+      "dataset": "面试八股文",
+      "question": "JavaScript 原型链的终点是什么？",
+      "abstain_expected": false,
+      "retrieval": {
+        "hit@1": 1.0,
+        "evidence_recall@1": 1.0,
+        "source_recall@1": 1.0,
+        "hit@3": 1.0,
+        "evidence_recall@3": 1.0,
+        "source_recall@3": 1.0,
+        "hit@5": 1.0,
+        "evidence_recall@5": 1.0,
+        "source_recall@5": 1.0,
+        "hit@10": 1.0,
+        "evidence_recall@10": 1.0,
+        "source_recall@10": 1.0,
+        "mrr": 1.0
+      },
+      "retrieval_raw": {
+        "hit@1": 1.0,
+        "evidence_recall@1": 1.0,
+        "source_recall@1": 1.0,
+        "hit@3": 1.0,
+        "evidence_recall@3": 1.0,
+        "source_recall@3": 1.0,
+        "hit@5": 1.0,
+        "evidence_recall@5": 1.0,
+        "source_recall@5": 1.0,
+        "hit@10": 1.0,
+        "evidence_recall@10": 1.0,
+        "source_recall@10": 1.0,
+        "mrr": 1.0
+      },
+      "hit_count": 10,
+      "no_hits": false,
+      "reason": "no_score",
+      "low_relevance": false,
+      "detail_k": 5,
+      "matched_evidence": [
+        "这样原型链的终点就是 `null`"
+      ],
+      "missing_evidence": [],
+      "hits": [
+        {
+          "rank": 1,
+          "document_name": "prototype.md",
+          "chunk_id": "8ba91af39b9b54fcacad773ff9417e8a",
+          "score": 0.7548904,
+          "rerank_score": null,
+          "matched_evidence": [
+            "这样原型链的终点就是 `null`"
+          ]
+        },
+        {
+          "rank": 2,
+          "document_name": "prototype.md",
+          "chunk_id": "293848c5fc7d527f99031ec7d7199f55",
+          "score": 0.70818174,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 3,
+          "document_name": "prototype.md",
+          "chunk_id": "86a802fbf56750aca7eeb1f7bbb3035b",
+          "score": 0.66220695,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 4,
+          "document_name": "prototype.md",
+          "chunk_id": "932cf2f0bf825e54be8891e97a43da7f",
+          "score": 0.6106217,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 5,
+          "document_name": "prototype.md",
+          "chunk_id": "962960a6180754b1a910d4625483bf03",
+          "score": 0.6170621,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 6,
+          "document_name": "prototype.md",
+          "chunk_id": "16562c1652dc5e85bb74a6704e32cfcd",
+          "score": 0.6227782,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 7,
+          "document_name": "BOM.md",
+          "chunk_id": "683ea99d43d55216a38e152851453231",
+          "score": 0.37379342,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 8,
+          "document_name": "prototype.md",
+          "chunk_id": "5418265e15d85e53bdd2742e49cb330d",
+          "score": 0.6880665,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 9,
+          "document_name": "prototype.md",
+          "chunk_id": "d25866b4fb2b58b2aa7bc1c9cbb20c6d",
+          "score": 0.6760801,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 10,
+          "document_name": "proxy.md",
+          "chunk_id": "c993da0d73f959999ae619374d7b9618",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        }
+      ]
+    },
+    {
+      "id": "pn-02",
+      "category": "proper_noun",
+      "dataset": "面试八股文",
+      "question": "Function.prototype 和 Function.__proto__ 同时指向什么？",
+      "abstain_expected": false,
+      "retrieval": {
+        "hit@1": 1.0,
+        "evidence_recall@1": 1.0,
+        "source_recall@1": 1.0,
+        "hit@3": 1.0,
+        "evidence_recall@3": 1.0,
+        "source_recall@3": 1.0,
+        "hit@5": 1.0,
+        "evidence_recall@5": 1.0,
+        "source_recall@5": 1.0,
+        "hit@10": 1.0,
+        "evidence_recall@10": 1.0,
+        "source_recall@10": 1.0,
+        "mrr": 1.0
+      },
+      "retrieval_raw": {
+        "hit@1": 1.0,
+        "evidence_recall@1": 1.0,
+        "source_recall@1": 1.0,
+        "hit@3": 1.0,
+        "evidence_recall@3": 1.0,
+        "source_recall@3": 1.0,
+        "hit@5": 1.0,
+        "evidence_recall@5": 1.0,
+        "source_recall@5": 1.0,
+        "hit@10": 1.0,
+        "evidence_recall@10": 1.0,
+        "source_recall@10": 1.0,
+        "mrr": 1.0
+      },
+      "hit_count": 10,
+      "no_hits": false,
+      "reason": "no_score",
+      "low_relevance": false,
+      "detail_k": 5,
+      "matched_evidence": [
+        "同时指向内置匿名函数 `anonymous`"
+      ],
+      "missing_evidence": [],
+      "hits": [
+        {
+          "rank": 1,
+          "document_name": "prototype.md",
+          "chunk_id": "8ba91af39b9b54fcacad773ff9417e8a",
+          "score": 0.730965,
+          "rerank_score": null,
+          "matched_evidence": [
+            "同时指向内置匿名函数 `anonymous`"
+          ]
+        },
+        {
+          "rank": 2,
+          "document_name": "prototype.md",
+          "chunk_id": "16562c1652dc5e85bb74a6704e32cfcd",
+          "score": 0.70012325,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 3,
+          "document_name": "prototype.md",
+          "chunk_id": "932cf2f0bf825e54be8891e97a43da7f",
+          "score": 0.62370956,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 4,
+          "document_name": "prototype.md",
+          "chunk_id": "962960a6180754b1a910d4625483bf03",
+          "score": 0.54815793,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 5,
+          "document_name": "prototype.md",
+          "chunk_id": "86a802fbf56750aca7eeb1f7bbb3035b",
+          "score": 0.5348476,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 6,
+          "document_name": "prototype.md",
+          "chunk_id": "d25866b4fb2b58b2aa7bc1c9cbb20c6d",
+          "score": 0.4483282,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 7,
+          "document_name": "proxy.md",
+          "chunk_id": "e19d293e01b75853ad40d09a96bd275f",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 8,
+          "document_name": "prototype.md",
+          "chunk_id": "5418265e15d85e53bdd2742e49cb330d",
+          "score": 0.42944667,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 9,
+          "document_name": "proxy.md",
+          "chunk_id": "727dba71361954c88c0c31036c78652a",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 10,
+          "document_name": "prototype.md",
+          "chunk_id": "293848c5fc7d527f99031ec7d7199f55",
+          "score": 0.42942703,
+          "rerank_score": null,
+          "matched_evidence": []
+        }
+      ]
+    },
+    {
+      "id": "pn-03",
+      "category": "proper_noun",
+      "dataset": "面试八股文",
+      "question": "为什么 Vue3 里要用 Proxy API 替代 defineProperty API？",
+      "abstain_expected": false,
+      "retrieval": {
+        "hit@1": 0.0,
+        "evidence_recall@1": 0.0,
+        "source_recall@1": 1.0,
+        "hit@3": 0.0,
+        "evidence_recall@3": 0.0,
+        "source_recall@3": 1.0,
+        "hit@5": 0.0,
+        "evidence_recall@5": 0.0,
+        "source_recall@5": 1.0,
+        "hit@10": 1.0,
+        "evidence_recall@10": 1.0,
+        "source_recall@10": 1.0,
+        "mrr": 0.125
+      },
+      "retrieval_raw": {
+        "hit@1": 0.0,
+        "evidence_recall@1": 0.0,
+        "source_recall@1": 1.0,
+        "hit@3": 0.0,
+        "evidence_recall@3": 0.0,
+        "source_recall@3": 1.0,
+        "hit@5": 0.0,
+        "evidence_recall@5": 0.0,
+        "source_recall@5": 1.0,
+        "hit@10": 1.0,
+        "evidence_recall@10": 1.0,
+        "source_recall@10": 1.0,
+        "mrr": 0.125
+      },
+      "hit_count": 10,
+      "no_hits": false,
+      "reason": "no_score",
+      "low_relevance": false,
+      "detail_k": 5,
+      "matched_evidence": [],
+      "missing_evidence": [
+        "检测不到对象属性的添加和删除"
+      ],
+      "hits": [
+        {
+          "rank": 1,
+          "document_name": "proxy.md",
+          "chunk_id": "a6325d69829058c2936606ac111db67a",
+          "score": 0.9234705,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 2,
+          "document_name": "proxy.md",
+          "chunk_id": "4c849dac8086532bb047534b1e5169e1",
+          "score": 0.7835331,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 3,
+          "document_name": "proxy.md",
+          "chunk_id": "e19d293e01b75853ad40d09a96bd275f",
+          "score": 0.80367184,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 4,
+          "document_name": "proxy.md",
+          "chunk_id": "727dba71361954c88c0c31036c78652a",
+          "score": 0.7769253,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 5,
+          "document_name": "proxy.md",
+          "chunk_id": "c993da0d73f959999ae619374d7b9618",
+          "score": 0.89669126,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 6,
+          "document_name": "axios.md",
+          "chunk_id": "bb9d5efcd28653c28291f43c9905a5b8",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 7,
+          "document_name": "proxy.md",
+          "chunk_id": "c6666545e98a5bbea9adf33b19c4db22",
+          "score": 0.86531556,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 8,
+          "document_name": "proxy.md",
+          "chunk_id": "b3afef2854c05221ab8b5c4650c299b6",
+          "score": 0.8343885,
+          "rerank_score": null,
+          "matched_evidence": [
+            "检测不到对象属性的添加和删除"
+          ]
+        },
+        {
+          "rank": 9,
+          "document_name": "proxy.md",
+          "chunk_id": "8d13b224f3935fa2b95bc6b04f247ba0",
+          "score": 0.8046718,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 10,
+          "document_name": "axios.md",
+          "chunk_id": "6a34564481e25241a1e4bb3585fb31c3",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        }
+      ]
+    },
+    {
+      "id": "pn-04",
+      "category": "proper_noun",
+      "dataset": "面试八股文",
+      "question": "axios 是基于什么来执行 HTTP 请求的？",
+      "abstain_expected": false,
+      "retrieval": {
+        "hit@1": 1.0,
+        "evidence_recall@1": 1.0,
+        "source_recall@1": 1.0,
+        "hit@3": 1.0,
+        "evidence_recall@3": 1.0,
+        "source_recall@3": 1.0,
+        "hit@5": 1.0,
+        "evidence_recall@5": 1.0,
+        "source_recall@5": 1.0,
+        "hit@10": 1.0,
+        "evidence_recall@10": 1.0,
+        "source_recall@10": 1.0,
+        "mrr": 1.0
+      },
+      "retrieval_raw": {
+        "hit@1": 1.0,
+        "evidence_recall@1": 1.0,
+        "source_recall@1": 1.0,
+        "hit@3": 1.0,
+        "evidence_recall@3": 1.0,
+        "source_recall@3": 1.0,
+        "hit@5": 1.0,
+        "evidence_recall@5": 1.0,
+        "source_recall@5": 1.0,
+        "hit@10": 1.0,
+        "evidence_recall@10": 1.0,
+        "source_recall@10": 1.0,
+        "mrr": 1.0
+      },
+      "hit_count": 10,
+      "no_hits": false,
+      "reason": "no_score",
+      "low_relevance": false,
+      "detail_k": 5,
+      "matched_evidence": [
+        "基于 `XMLHttpRequest` 服务来执行 `HTTP` 请求"
+      ],
+      "missing_evidence": [],
+      "hits": [
+        {
+          "rank": 1,
+          "document_name": "axios.md",
+          "chunk_id": "90103c2ca9ab5a899aebbf8500134725",
+          "score": 0.67254996,
+          "rerank_score": null,
+          "matched_evidence": [
+            "基于 `XMLHttpRequest` 服务来执行 `HTTP` 请求"
+          ]
+        },
+        {
+          "rank": 2,
+          "document_name": "axios.md",
+          "chunk_id": "ad015de9a65052ddbff2126f2e308d1d",
+          "score": 0.50829077,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 3,
+          "document_name": "axios.md",
+          "chunk_id": "6a34564481e25241a1e4bb3585fb31c3",
+          "score": 0.46188217,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 4,
+          "document_name": "axios.md",
+          "chunk_id": "dbf24fa2ab1751d19d5677d7f6bfce58",
+          "score": 0.4724977,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 5,
+          "document_name": "axios.md",
+          "chunk_id": "f8ff8cb12d025334bba18aeed39c12e4",
+          "score": 0.59212905,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 6,
+          "document_name": "axios.md",
+          "chunk_id": "f220954993615598aed4e99a457ae25f",
+          "score": 0.558118,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 7,
+          "document_name": "prototype.md",
+          "chunk_id": "293848c5fc7d527f99031ec7d7199f55",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 8,
+          "document_name": "HTTP_HTTPS.md",
+          "chunk_id": "3f05c70a875059c6b308cca2be53e1c3",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 9,
+          "document_name": "axios.md",
+          "chunk_id": "eee42c30639a54b0a7fa32c3bce7bfff",
+          "score": 0.47080117,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 10,
+          "document_name": "proxy.md",
+          "chunk_id": "a6325d69829058c2936606ac111db67a",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        }
+      ]
+    },
+    {
+      "id": "pn-05",
+      "category": "proper_noun",
+      "dataset": "面试八股文",
+      "question": "CSS 的 animation 属性是由多少个属性简写而成的？",
+      "abstain_expected": false,
+      "retrieval": {
+        "hit@1": 1.0,
+        "evidence_recall@1": 1.0,
+        "source_recall@1": 1.0,
+        "hit@3": 1.0,
+        "evidence_recall@3": 1.0,
+        "source_recall@3": 1.0,
+        "hit@5": 1.0,
+        "evidence_recall@5": 1.0,
+        "source_recall@5": 1.0,
+        "hit@10": 1.0,
+        "evidence_recall@10": 1.0,
+        "source_recall@10": 1.0,
+        "mrr": 1.0
+      },
+      "retrieval_raw": {
+        "hit@1": 1.0,
+        "evidence_recall@1": 1.0,
+        "source_recall@1": 1.0,
+        "hit@3": 1.0,
+        "evidence_recall@3": 1.0,
+        "source_recall@3": 1.0,
+        "hit@5": 1.0,
+        "evidence_recall@5": 1.0,
+        "source_recall@5": 1.0,
+        "hit@10": 1.0,
+        "evidence_recall@10": 1.0,
+        "source_recall@10": 1.0,
+        "mrr": 1.0
+      },
+      "hit_count": 10,
+      "no_hits": false,
+      "reason": "no_score",
+      "low_relevance": false,
+      "detail_k": 5,
+      "matched_evidence": [
+        "`animation`是由 8 个属性的简写"
+      ],
+      "missing_evidence": [],
+      "hits": [
+        {
+          "rank": 1,
+          "document_name": "animation.md",
+          "chunk_id": "c611ba9930545d5a947ff8bfeaef35e1",
+          "score": 0.7620324,
+          "rerank_score": null,
+          "matched_evidence": [
+            "`animation`是由 8 个属性的简写"
+          ]
+        },
+        {
+          "rank": 2,
+          "document_name": "animation.md",
+          "chunk_id": "b73169ad27e5569fb62c7c48cb8fe903",
+          "score": 0.6633313,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 3,
+          "document_name": "animation.md",
+          "chunk_id": "5a49c29578c75c249255a1e7419623a8",
+          "score": 0.64051855,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 4,
+          "document_name": "animation.md",
+          "chunk_id": "abce46fd0ca45b0e88af4db2adc20c58",
+          "score": 0.60621476,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 5,
+          "document_name": "animation.md",
+          "chunk_id": "7870775c12795f0b8038c13a5300d569",
+          "score": 0.5408685,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 6,
+          "document_name": "animation.md",
+          "chunk_id": "da6b2054325b59d8814bf31220719bb9",
+          "score": 0.5640715,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 7,
+          "document_name": "animation.md",
+          "chunk_id": "088d1382627850a6807954fa088b0a28",
+          "score": 0.6007895,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 8,
+          "document_name": "animation.md",
+          "chunk_id": "f0d1d73b20fc5bb29fb0df37edbe25e2",
+          "score": 0.5782869,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 9,
+          "document_name": "animation.md",
+          "chunk_id": "b947f9cca781560080379182a8711c9c",
+          "score": 0.60495436,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 10,
+          "document_name": "animation.md",
+          "chunk_id": "4d0ed576fb5b526aa424eb7a9d1e25e7",
+          "score": 0.529254,
+          "rerank_score": null,
+          "matched_evidence": []
+        }
+      ]
+    },
+    {
+      "id": "mt-01",
+      "category": "multi_turn",
+      "dataset": "面试八股文",
+      "question": "请求拦截器一般用来做什么？",
+      "abstain_expected": false,
+      "retrieval": {
+        "hit@1": 1.0,
+        "evidence_recall@1": 1.0,
+        "source_recall@1": 1.0,
+        "hit@3": 1.0,
+        "evidence_recall@3": 1.0,
+        "source_recall@3": 1.0,
+        "hit@5": 1.0,
+        "evidence_recall@5": 1.0,
+        "source_recall@5": 1.0,
+        "hit@10": 1.0,
+        "evidence_recall@10": 1.0,
+        "source_recall@10": 1.0,
+        "mrr": 1.0
+      },
+      "retrieval_raw": {
+        "hit@1": 1.0,
+        "evidence_recall@1": 1.0,
+        "source_recall@1": 1.0,
+        "hit@3": 1.0,
+        "evidence_recall@3": 1.0,
+        "source_recall@3": 1.0,
+        "hit@5": 1.0,
+        "evidence_recall@5": 1.0,
+        "source_recall@5": 1.0,
+        "hit@10": 1.0,
+        "evidence_recall@10": 1.0,
+        "source_recall@10": 1.0,
+        "mrr": 1.0
+      },
+      "hit_count": 10,
+      "no_hits": false,
+      "reason": "no_score",
+      "low_relevance": false,
+      "detail_k": 5,
+      "matched_evidence": [
+        "请求拦截器可以在每个请求里加上token"
+      ],
+      "missing_evidence": [],
+      "hits": [
+        {
+          "rank": 1,
+          "document_name": "axios.md",
+          "chunk_id": "dbf24fa2ab1751d19d5677d7f6bfce58",
+          "score": 0.61835146,
+          "rerank_score": null,
+          "matched_evidence": [
+            "请求拦截器可以在每个请求里加上token"
+          ]
+        },
+        {
+          "rank": 2,
+          "document_name": "axios.md",
+          "chunk_id": "25bc15998ff05c35b481d5c3c7bef32a",
+          "score": 0.52032626,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 3,
+          "document_name": "axios.md",
+          "chunk_id": "f8a892df43975e159142adcf5f67d4a6",
+          "score": 0.46170184,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 4,
+          "document_name": "axios.md",
+          "chunk_id": "f8ff8cb12d025334bba18aeed39c12e4",
+          "score": 0.3777486,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 5,
+          "document_name": "axios.md",
+          "chunk_id": "e72bc0cd82995da4b38ec61b2127ad0f",
+          "score": 0.394673,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 6,
+          "document_name": "axios.md",
+          "chunk_id": "0aeeca2467705e08a2427ff10a6a26a8",
+          "score": 0.33580875,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 7,
+          "document_name": "axios.md",
+          "chunk_id": "f220954993615598aed4e99a457ae25f",
+          "score": 0.3544191,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 8,
+          "document_name": "axios.md",
+          "chunk_id": "bb9d5efcd28653c28291f43c9905a5b8",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 9,
+          "document_name": "axios.md",
+          "chunk_id": "6a34564481e25241a1e4bb3585fb31c3",
+          "score": 0.34923035,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 10,
+          "document_name": "axios.md",
+          "chunk_id": "0ceb8d20e8f85a09b854b9f58bad187a",
+          "score": 0.34244433,
+          "rerank_score": null,
+          "matched_evidence": []
+        }
+      ]
+    },
+    {
+      "id": "mt-02",
+      "category": "multi_turn",
+      "dataset": "面试八股文",
+      "question": "用 defineProperty 时数组的 API 方法能监听到吗？",
+      "abstain_expected": false,
+      "retrieval": {
+        "hit@1": 1.0,
+        "evidence_recall@1": 1.0,
+        "source_recall@1": 1.0,
+        "hit@3": 1.0,
+        "evidence_recall@3": 1.0,
+        "source_recall@3": 1.0,
+        "hit@5": 1.0,
+        "evidence_recall@5": 1.0,
+        "source_recall@5": 1.0,
+        "hit@10": 1.0,
+        "evidence_recall@10": 1.0,
+        "source_recall@10": 1.0,
+        "mrr": 1.0
+      },
+      "retrieval_raw": {
+        "hit@1": 1.0,
+        "evidence_recall@1": 1.0,
+        "source_recall@1": 1.0,
+        "hit@3": 1.0,
+        "evidence_recall@3": 1.0,
+        "source_recall@3": 1.0,
+        "hit@5": 1.0,
+        "evidence_recall@5": 1.0,
+        "source_recall@5": 1.0,
+        "hit@10": 1.0,
+        "evidence_recall@10": 1.0,
+        "source_recall@10": 1.0,
+        "mrr": 1.0
+      },
+      "hit_count": 10,
+      "no_hits": false,
+      "reason": "no_score",
+      "low_relevance": false,
+      "detail_k": 5,
+      "matched_evidence": [
+        "数组`API`方法无法监听到"
+      ],
+      "missing_evidence": [],
+      "hits": [
+        {
+          "rank": 1,
+          "document_name": "proxy.md",
+          "chunk_id": "b3afef2854c05221ab8b5c4650c299b6",
+          "score": 0.7228817,
+          "rerank_score": null,
+          "matched_evidence": [
+            "数组`API`方法无法监听到"
+          ]
+        },
+        {
+          "rank": 2,
+          "document_name": "proxy.md",
+          "chunk_id": "4c849dac8086532bb047534b1e5169e1",
+          "score": 0.63181067,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 3,
+          "document_name": "proxy.md",
+          "chunk_id": "c6666545e98a5bbea9adf33b19c4db22",
+          "score": 0.62811613,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 4,
+          "document_name": "proxy.md",
+          "chunk_id": "92a27a67804a59eba7a34942d8722e40",
+          "score": 0.65886307,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 5,
+          "document_name": "proxy.md",
+          "chunk_id": "a6325d69829058c2936606ac111db67a",
+          "score": 0.57751447,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 6,
+          "document_name": "proxy.md",
+          "chunk_id": "727dba71361954c88c0c31036c78652a",
+          "score": 0.60266995,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 7,
+          "document_name": "proxy.md",
+          "chunk_id": "e19d293e01b75853ad40d09a96bd275f",
+          "score": 0.5454663,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 8,
+          "document_name": "proxy.md",
+          "chunk_id": "72cd12a7b7855441bff5b2eb5c3cf66a",
+          "score": 0.6292373,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 9,
+          "document_name": "proxy.md",
+          "chunk_id": "c993da0d73f959999ae619374d7b9618",
+          "score": 0.6062963,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 10,
+          "document_name": "axios.md",
+          "chunk_id": "19fdaa3dd11a5f2caab1ab1551942f98",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        }
+      ]
+    },
+    {
+      "id": "mt-03",
+      "category": "multi_turn",
+      "dataset": "面试八股文",
+      "question": "navigator 对象主要用来做什么？",
+      "abstain_expected": false,
+      "retrieval": {
+        "hit@1": 1.0,
+        "evidence_recall@1": 1.0,
+        "source_recall@1": 1.0,
+        "hit@3": 1.0,
+        "evidence_recall@3": 1.0,
+        "source_recall@3": 1.0,
+        "hit@5": 1.0,
+        "evidence_recall@5": 1.0,
+        "source_recall@5": 1.0,
+        "hit@10": 1.0,
+        "evidence_recall@10": 1.0,
+        "source_recall@10": 1.0,
+        "mrr": 1.0
+      },
+      "retrieval_raw": {
+        "hit@1": 1.0,
+        "evidence_recall@1": 1.0,
+        "source_recall@1": 1.0,
+        "hit@3": 1.0,
+        "evidence_recall@3": 1.0,
+        "source_recall@3": 1.0,
+        "hit@5": 1.0,
+        "evidence_recall@5": 1.0,
+        "source_recall@5": 1.0,
+        "hit@10": 1.0,
+        "evidence_recall@10": 1.0,
+        "source_recall@10": 1.0,
+        "mrr": 1.0
+      },
+      "hit_count": 10,
+      "no_hits": false,
+      "reason": "no_score",
+      "low_relevance": false,
+      "detail_k": 5,
+      "matched_evidence": [
+        "`navigator` 对象主要用来获取浏览器的属性"
+      ],
+      "missing_evidence": [],
+      "hits": [
+        {
+          "rank": 1,
+          "document_name": "BOM.md",
+          "chunk_id": "0012109ef64554a9b33b042baa389528",
+          "score": 0.7065078,
+          "rerank_score": null,
+          "matched_evidence": [
+            "`navigator` 对象主要用来获取浏览器的属性"
+          ]
+        },
+        {
+          "rank": 2,
+          "document_name": "BOM.md",
+          "chunk_id": "ddc569ce93a15cb6a73bcbcffbe18633",
+          "score": 0.48039538,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 3,
+          "document_name": "prototype.md",
+          "chunk_id": "932cf2f0bf825e54be8891e97a43da7f",
+          "score": 0.39681476,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 4,
+          "document_name": "BOM.md",
+          "chunk_id": "cf0a8079e3c7598ba3f5184adc3bfccd",
+          "score": 0.4303082,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 5,
+          "document_name": "BOM.md",
+          "chunk_id": "34d861ffa45c568b97a959dd5054c61c",
+          "score": 0.5054301,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 6,
+          "document_name": "BOM.md",
+          "chunk_id": "0d5cbd1990c25ddfacdef4c686926d53",
+          "score": 0.4846046,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 7,
+          "document_name": "proxy.md",
+          "chunk_id": "b3afef2854c05221ab8b5c4650c299b6",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 8,
+          "document_name": "BOM.md",
+          "chunk_id": "ca7d29e4b06a537a8b1886263d0cb592",
+          "score": 0.47740802,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 9,
+          "document_name": "proxy.md",
+          "chunk_id": "c6666545e98a5bbea9adf33b19c4db22",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 10,
+          "document_name": "BOM.md",
+          "chunk_id": "683ea99d43d55216a38e152851453231",
+          "score": 0.44653606,
+          "rerank_score": null,
+          "matched_evidence": []
+        }
+      ]
+    },
+    {
+      "id": "mt-04",
+      "category": "multi_turn",
+      "dataset": "面试八股文",
+      "question": "年假需要提前多久在 OA 系统提交申请？",
+      "abstain_expected": false,
+      "retrieval": {
+        "hit@1": 1.0,
+        "evidence_recall@1": 1.0,
+        "source_recall@1": 1.0,
+        "hit@3": 1.0,
+        "evidence_recall@3": 1.0,
+        "source_recall@3": 1.0,
+        "hit@5": 1.0,
+        "evidence_recall@5": 1.0,
+        "source_recall@5": 1.0,
+        "hit@10": 1.0,
+        "evidence_recall@10": 1.0,
+        "source_recall@10": 1.0,
+        "mrr": 1.0
+      },
+      "retrieval_raw": {
+        "hit@1": 1.0,
+        "evidence_recall@1": 1.0,
+        "source_recall@1": 1.0,
+        "hit@3": 1.0,
+        "evidence_recall@3": 1.0,
+        "source_recall@3": 1.0,
+        "hit@5": 1.0,
+        "evidence_recall@5": 1.0,
+        "source_recall@5": 1.0,
+        "hit@10": 1.0,
+        "evidence_recall@10": 1.0,
+        "source_recall@10": 1.0,
+        "mrr": 1.0
+      },
+      "hit_count": 10,
+      "no_hits": false,
+      "reason": "no_score",
+      "low_relevance": false,
+      "detail_k": 5,
+      "matched_evidence": [
+        "年假需提前三天在 OA 系统提交申请"
+      ],
+      "missing_evidence": [],
+      "hits": [
+        {
+          "rank": 1,
+          "document_name": "员工手册.txt",
+          "chunk_id": "857e600e79465426bfea242951776113",
+          "score": 0.7070066,
+          "rerank_score": null,
+          "matched_evidence": [
+            "年假需提前三天在 OA 系统提交申请"
+          ]
+        },
+        {
+          "rank": 2,
+          "document_name": "axios.md",
+          "chunk_id": "19fdaa3dd11a5f2caab1ab1551942f98",
+          "score": 0.3924095,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 3,
+          "document_name": "axios.md",
+          "chunk_id": "f8a892df43975e159142adcf5f67d4a6",
+          "score": 0.38069642,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 4,
+          "document_name": "axios.md",
+          "chunk_id": "0aeeca2467705e08a2427ff10a6a26a8",
+          "score": 0.4051735,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 5,
+          "document_name": "axios.md",
+          "chunk_id": "eee42c30639a54b0a7fa32c3bce7bfff",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 6,
+          "document_name": "proxy.md",
+          "chunk_id": "b3afef2854c05221ab8b5c4650c299b6",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 7,
+          "document_name": "animation.md",
+          "chunk_id": "7870775c12795f0b8038c13a5300d569",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 8,
+          "document_name": "axios.md",
+          "chunk_id": "bb9d5efcd28653c28291f43c9905a5b8",
+          "score": 0.366394,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 9,
+          "document_name": "BOM.md",
+          "chunk_id": "74c9b5f6610a5c8e8cd181e785e871d3",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 10,
+          "document_name": "axios.md",
+          "chunk_id": "e72bc0cd82995da4b38ec61b2127ad0f",
+          "score": 0.33731008,
+          "rerank_score": null,
+          "matched_evidence": []
+        }
+      ]
+    },
+    {
+      "id": "ana-01",
+      "category": "anaphora",
+      "dataset": "面试八股文",
+      "question": "那这个怎么办？",
+      "abstain_expected": false,
+      "retrieval": {
+        "hit@1": 0.0,
+        "evidence_recall@1": 0.0,
+        "source_recall@1": 0.0,
+        "hit@3": 0.0,
+        "evidence_recall@3": 0.0,
+        "source_recall@3": 0.0,
+        "hit@5": 0.0,
+        "evidence_recall@5": 0.0,
+        "source_recall@5": 0.0,
+        "hit@10": 0.0,
+        "evidence_recall@10": 0.0,
+        "source_recall@10": 0.0,
+        "mrr": 0.0
+      },
+      "retrieval_raw": {
+        "hit@1": 0.0,
+        "evidence_recall@1": 0.0,
+        "source_recall@1": 0.0,
+        "hit@3": 0.0,
+        "evidence_recall@3": 0.0,
+        "source_recall@3": 0.0,
+        "hit@5": 0.0,
+        "evidence_recall@5": 0.0,
+        "source_recall@5": 0.0,
+        "hit@10": 0.0,
+        "evidence_recall@10": 0.0,
+        "source_recall@10": 0.0,
+        "mrr": 0.0
+      },
+      "hit_count": 4,
+      "no_hits": false,
+      "reason": "no_score",
+      "low_relevance": false,
+      "detail_k": 5,
+      "matched_evidence": [],
+      "missing_evidence": [
+        "迟到或早退超过三十分钟按半天事假处理"
+      ],
+      "hits": [
+        {
+          "rank": 1,
+          "document_name": "axios.md",
+          "chunk_id": "25bc15998ff05c35b481d5c3c7bef32a",
+          "score": 0.3537107,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 2,
+          "document_name": "proxy.md",
+          "chunk_id": "72cd12a7b7855441bff5b2eb5c3cf66a",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 3,
+          "document_name": "BOM.md",
+          "chunk_id": "74c9b5f6610a5c8e8cd181e785e871d3",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 4,
+          "document_name": "prototype.md",
+          "chunk_id": "86a802fbf56750aca7eeb1f7bbb3035b",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        }
+      ]
+    },
+    {
+      "id": "ana-02",
+      "category": "anaphora",
+      "dataset": "面试八股文",
+      "question": "它主要解决什么问题？",
+      "abstain_expected": false,
+      "retrieval": {
+        "hit@1": 0.0,
+        "evidence_recall@1": 0.0,
+        "source_recall@1": 0.0,
+        "hit@3": 0.0,
+        "evidence_recall@3": 0.0,
+        "source_recall@3": 0.0,
+        "hit@5": 0.0,
+        "evidence_recall@5": 0.0,
+        "source_recall@5": 1.0,
+        "hit@10": 0.0,
+        "evidence_recall@10": 0.0,
+        "source_recall@10": 1.0,
+        "mrr": 0.0
+      },
+      "retrieval_raw": {
+        "hit@1": 0.0,
+        "evidence_recall@1": 0.0,
+        "source_recall@1": 0.0,
+        "hit@3": 0.0,
+        "evidence_recall@3": 0.0,
+        "source_recall@3": 0.0,
+        "hit@5": 0.0,
+        "evidence_recall@5": 0.0,
+        "source_recall@5": 1.0,
+        "hit@10": 0.0,
+        "evidence_recall@10": 0.0,
+        "source_recall@10": 1.0,
+        "mrr": 0.0
+      },
+      "hit_count": 8,
+      "no_hits": false,
+      "reason": "no_score",
+      "low_relevance": false,
+      "detail_k": 5,
+      "matched_evidence": [],
+      "missing_evidence": [
+        "`HTTPS`出现正是为了解决`HTTP`不安全的特性"
+      ],
+      "hits": [
+        {
+          "rank": 1,
+          "document_name": "proxy.md",
+          "chunk_id": "2148a9f1bba15bf7a6cd6395aa060617",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 2,
+          "document_name": "proxy.md",
+          "chunk_id": "b3afef2854c05221ab8b5c4650c299b6",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 3,
+          "document_name": "prototype.md",
+          "chunk_id": "293848c5fc7d527f99031ec7d7199f55",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 4,
+          "document_name": "HTTP_HTTPS.md",
+          "chunk_id": "3f05c70a875059c6b308cca2be53e1c3",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 5,
+          "document_name": "axios.md",
+          "chunk_id": "ad015de9a65052ddbff2126f2e308d1d",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 6,
+          "document_name": "proxy.md",
+          "chunk_id": "a6325d69829058c2936606ac111db67a",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 7,
+          "document_name": "axios.md",
+          "chunk_id": "90103c2ca9ab5a899aebbf8500134725",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 8,
+          "document_name": "animation.md",
+          "chunk_id": "5a49c29578c75c249255a1e7419623a8",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        }
+      ]
+    },
+    {
+      "id": "ana-03",
+      "category": "anaphora",
+      "dataset": "面试八股文",
+      "question": "它的拦截方法有多少种？",
+      "abstain_expected": false,
+      "retrieval": {
+        "hit@1": 0.0,
+        "evidence_recall@1": 0.0,
+        "source_recall@1": 0.0,
+        "hit@3": 1.0,
+        "evidence_recall@3": 1.0,
+        "source_recall@3": 1.0,
+        "hit@5": 1.0,
+        "evidence_recall@5": 1.0,
+        "source_recall@5": 1.0,
+        "hit@10": 1.0,
+        "evidence_recall@10": 1.0,
+        "source_recall@10": 1.0,
+        "mrr": 0.5
+      },
+      "retrieval_raw": {
+        "hit@1": 0.0,
+        "evidence_recall@1": 0.0,
+        "source_recall@1": 0.0,
+        "hit@3": 1.0,
+        "evidence_recall@3": 1.0,
+        "source_recall@3": 1.0,
+        "hit@5": 1.0,
+        "evidence_recall@5": 1.0,
+        "source_recall@5": 1.0,
+        "hit@10": 1.0,
+        "evidence_recall@10": 1.0,
+        "source_recall@10": 1.0,
+        "mrr": 0.5
+      },
+      "hit_count": 10,
+      "no_hits": false,
+      "reason": "no_score",
+      "low_relevance": false,
+      "detail_k": 5,
+      "matched_evidence": [
+        "`Proxy`有多达13种拦截方法"
+      ],
+      "missing_evidence": [],
+      "hits": [
+        {
+          "rank": 1,
+          "document_name": "axios.md",
+          "chunk_id": "f8a892df43975e159142adcf5f67d4a6",
+          "score": 0.38838065,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 2,
+          "document_name": "proxy.md",
+          "chunk_id": "e19d293e01b75853ad40d09a96bd275f",
+          "score": 0.35849994,
+          "rerank_score": null,
+          "matched_evidence": [
+            "`Proxy`有多达13种拦截方法"
+          ]
+        },
+        {
+          "rank": 3,
+          "document_name": "axios.md",
+          "chunk_id": "f8ff8cb12d025334bba18aeed39c12e4",
+          "score": 0.32018694,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 4,
+          "document_name": "axios.md",
+          "chunk_id": "25bc15998ff05c35b481d5c3c7bef32a",
+          "score": 0.46445984,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 5,
+          "document_name": "axios.md",
+          "chunk_id": "dbf24fa2ab1751d19d5677d7f6bfce58",
+          "score": 0.42820007,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 6,
+          "document_name": "prototype.md",
+          "chunk_id": "962960a6180754b1a910d4625483bf03",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 7,
+          "document_name": "animation.md",
+          "chunk_id": "f0d1d73b20fc5bb29fb0df37edbe25e2",
+          "score": 0.3641483,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 8,
+          "document_name": "proxy.md",
+          "chunk_id": "b3afef2854c05221ab8b5c4650c299b6",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 9,
+          "document_name": "proxy.md",
+          "chunk_id": "c6666545e98a5bbea9adf33b19c4db22",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 10,
+          "document_name": "axios.md",
+          "chunk_id": "0ee7bf96eb3958faad77d27b21c7b08e",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        }
+      ]
+    },
+    {
+      "id": "ana-04",
+      "category": "anaphora",
+      "dataset": "面试八股文",
+      "question": "这个怎么定义关键帧？",
+      "abstain_expected": false,
+      "retrieval": {
+        "hit@1": 1.0,
+        "evidence_recall@1": 1.0,
+        "source_recall@1": 1.0,
+        "hit@3": 1.0,
+        "evidence_recall@3": 1.0,
+        "source_recall@3": 1.0,
+        "hit@5": 1.0,
+        "evidence_recall@5": 1.0,
+        "source_recall@5": 1.0,
+        "hit@10": 1.0,
+        "evidence_recall@10": 1.0,
+        "source_recall@10": 1.0,
+        "mrr": 1.0
+      },
+      "retrieval_raw": {
+        "hit@1": 1.0,
+        "evidence_recall@1": 1.0,
+        "source_recall@1": 1.0,
+        "hit@3": 1.0,
+        "evidence_recall@3": 1.0,
+        "source_recall@3": 1.0,
+        "hit@5": 1.0,
+        "evidence_recall@5": 1.0,
+        "source_recall@5": 1.0,
+        "hit@10": 1.0,
+        "evidence_recall@10": 1.0,
+        "source_recall@10": 1.0,
+        "mrr": 1.0
+      },
+      "hit_count": 10,
+      "no_hits": false,
+      "reason": "no_score",
+      "low_relevance": false,
+      "detail_k": 5,
+      "matched_evidence": [
+        "通过 `@keyframes` 来定义关键帧"
+      ],
+      "missing_evidence": [],
+      "hits": [
+        {
+          "rank": 1,
+          "document_name": "animation.md",
+          "chunk_id": "da6b2054325b59d8814bf31220719bb9",
+          "score": 0.5793284,
+          "rerank_score": null,
+          "matched_evidence": [
+            "通过 `@keyframes` 来定义关键帧"
+          ]
+        },
+        {
+          "rank": 2,
+          "document_name": "animation.md",
+          "chunk_id": "c611ba9930545d5a947ff8bfeaef35e1",
+          "score": 0.3501091,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 3,
+          "document_name": "BOM.md",
+          "chunk_id": "74c9b5f6610a5c8e8cd181e785e871d3",
+          "score": 0.326547,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 4,
+          "document_name": "animation.md",
+          "chunk_id": "5a49c29578c75c249255a1e7419623a8",
+          "score": 0.31734455,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 5,
+          "document_name": "animation.md",
+          "chunk_id": "abce46fd0ca45b0e88af4db2adc20c58",
+          "score": 0.439186,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 6,
+          "document_name": "proxy.md",
+          "chunk_id": "72cd12a7b7855441bff5b2eb5c3cf66a",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 7,
+          "document_name": "prototype.md",
+          "chunk_id": "86a802fbf56750aca7eeb1f7bbb3035b",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 8,
+          "document_name": "HTTP_HTTPS.md",
+          "chunk_id": "3f05c70a875059c6b308cca2be53e1c3",
+          "score": 0.33031148,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 9,
+          "document_name": "HTTP_HTTPS.md",
+          "chunk_id": "c359071acc105d4b9d4da764bc640ec1",
+          "score": 0.32714346,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 10,
+          "document_name": "proxy.md",
+          "chunk_id": "c6666545e98a5bbea9adf33b19c4db22",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        }
+      ]
+    },
+    {
+      "id": "xc-01",
+      "category": "cross_chunk",
+      "dataset": "面试八股文",
+      "question": "axios 封装里请求拦截器和响应拦截器分别做什么？",
+      "abstain_expected": false,
+      "retrieval": {
+        "hit@1": 1.0,
+        "evidence_recall@1": 0.5,
+        "source_recall@1": 1.0,
+        "hit@3": 1.0,
+        "evidence_recall@3": 1.0,
+        "source_recall@3": 1.0,
+        "hit@5": 1.0,
+        "evidence_recall@5": 1.0,
+        "source_recall@5": 1.0,
+        "hit@10": 1.0,
+        "evidence_recall@10": 1.0,
+        "source_recall@10": 1.0,
+        "mrr": 1.0
+      },
+      "retrieval_raw": {
+        "hit@1": 1.0,
+        "evidence_recall@1": 0.5,
+        "source_recall@1": 1.0,
+        "hit@3": 1.0,
+        "evidence_recall@3": 1.0,
+        "source_recall@3": 1.0,
+        "hit@5": 1.0,
+        "evidence_recall@5": 1.0,
+        "source_recall@5": 1.0,
+        "hit@10": 1.0,
+        "evidence_recall@10": 1.0,
+        "source_recall@10": 1.0,
+        "mrr": 1.0
+      },
+      "hit_count": 10,
+      "no_hits": false,
+      "reason": "no_score",
+      "low_relevance": false,
+      "detail_k": 5,
+      "matched_evidence": [
+        "请求拦截器可以在每个请求里加上token",
+        "响应拦截器可以在接收到响应后先做一层操作"
+      ],
+      "missing_evidence": [],
+      "hits": [
+        {
+          "rank": 1,
+          "document_name": "axios.md",
+          "chunk_id": "dbf24fa2ab1751d19d5677d7f6bfce58",
+          "score": 0.75334877,
+          "rerank_score": null,
+          "matched_evidence": [
+            "请求拦截器可以在每个请求里加上token"
+          ]
+        },
+        {
+          "rank": 2,
+          "document_name": "axios.md",
+          "chunk_id": "f8a892df43975e159142adcf5f67d4a6",
+          "score": 0.6794648,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 3,
+          "document_name": "axios.md",
+          "chunk_id": "25bc15998ff05c35b481d5c3c7bef32a",
+          "score": 0.74689484,
+          "rerank_score": null,
+          "matched_evidence": [
+            "响应拦截器可以在接收到响应后先做一层操作"
+          ]
+        },
+        {
+          "rank": 4,
+          "document_name": "axios.md",
+          "chunk_id": "ad015de9a65052ddbff2126f2e308d1d",
+          "score": 0.6203919,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 5,
+          "document_name": "axios.md",
+          "chunk_id": "0ceb8d20e8f85a09b854b9f58bad187a",
+          "score": 0.57683617,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 6,
+          "document_name": "axios.md",
+          "chunk_id": "eee42c30639a54b0a7fa32c3bce7bfff",
+          "score": 0.59515727,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 7,
+          "document_name": "axios.md",
+          "chunk_id": "0ee7bf96eb3958faad77d27b21c7b08e",
+          "score": 0.5749949,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 8,
+          "document_name": "axios.md",
+          "chunk_id": "f8ff8cb12d025334bba18aeed39c12e4",
+          "score": 0.6507033,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 9,
+          "document_name": "axios.md",
+          "chunk_id": "6a34564481e25241a1e4bb3585fb31c3",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 10,
+          "document_name": "axios.md",
+          "chunk_id": "e72bc0cd82995da4b38ec61b2127ad0f",
+          "score": 0.60545194,
+          "rerank_score": null,
+          "matched_evidence": []
+        }
+      ]
+    },
+    {
+      "id": "xc-02",
+      "category": "cross_chunk",
+      "dataset": "面试八股文",
+      "question": "相比 defineProperty，Proxy 在监听方式上有什么不同？",
+      "abstain_expected": false,
+      "retrieval": {
+        "hit@1": 1.0,
+        "evidence_recall@1": 0.5,
+        "source_recall@1": 1.0,
+        "hit@3": 1.0,
+        "evidence_recall@3": 1.0,
+        "source_recall@3": 1.0,
+        "hit@5": 1.0,
+        "evidence_recall@5": 1.0,
+        "source_recall@5": 1.0,
+        "hit@10": 1.0,
+        "evidence_recall@10": 1.0,
+        "source_recall@10": 1.0,
+        "mrr": 1.0
+      },
+      "retrieval_raw": {
+        "hit@1": 1.0,
+        "evidence_recall@1": 0.5,
+        "source_recall@1": 1.0,
+        "hit@3": 1.0,
+        "evidence_recall@3": 1.0,
+        "source_recall@3": 1.0,
+        "hit@5": 1.0,
+        "evidence_recall@5": 1.0,
+        "source_recall@5": 1.0,
+        "hit@10": 1.0,
+        "evidence_recall@10": 1.0,
+        "source_recall@10": 1.0,
+        "mrr": 1.0
+      },
+      "hit_count": 10,
+      "no_hits": false,
+      "reason": "no_score",
+      "low_relevance": false,
+      "detail_k": 5,
+      "matched_evidence": [
+        "`Proxy`的监听是针对一个对象的",
+        "`Object.defineProperty`只能遍历对象属性进行劫持"
+      ],
+      "missing_evidence": [],
+      "hits": [
+        {
+          "rank": 1,
+          "document_name": "proxy.md",
+          "chunk_id": "72cd12a7b7855441bff5b2eb5c3cf66a",
+          "score": 0.73370636,
+          "rerank_score": null,
+          "matched_evidence": [
+            "`Proxy`的监听是针对一个对象的"
+          ]
+        },
+        {
+          "rank": 2,
+          "document_name": "proxy.md",
+          "chunk_id": "8d13b224f3935fa2b95bc6b04f247ba0",
+          "score": 0.63963974,
+          "rerank_score": null,
+          "matched_evidence": [
+            "`Object.defineProperty`只能遍历对象属性进行劫持"
+          ]
+        },
+        {
+          "rank": 3,
+          "document_name": "proxy.md",
+          "chunk_id": "92a27a67804a59eba7a34942d8722e40",
+          "score": 0.67947125,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 4,
+          "document_name": "proxy.md",
+          "chunk_id": "a6325d69829058c2936606ac111db67a",
+          "score": 0.6100595,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 5,
+          "document_name": "proxy.md",
+          "chunk_id": "b3afef2854c05221ab8b5c4650c299b6",
+          "score": 0.6789422,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 6,
+          "document_name": "proxy.md",
+          "chunk_id": "4c849dac8086532bb047534b1e5169e1",
+          "score": 0.58460754,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 7,
+          "document_name": "proxy.md",
+          "chunk_id": "c6666545e98a5bbea9adf33b19c4db22",
+          "score": 0.62508655,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 8,
+          "document_name": "proxy.md",
+          "chunk_id": "e19d293e01b75853ad40d09a96bd275f",
+          "score": 0.5581223,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 9,
+          "document_name": "proxy.md",
+          "chunk_id": "c993da0d73f959999ae619374d7b9618",
+          "score": 0.6302391,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 10,
+          "document_name": "proxy.md",
+          "chunk_id": "f3cd514441f052a9b42e7281c4105cbd",
+          "score": 0.62175715,
+          "rerank_score": null,
+          "matched_evidence": []
+        }
+      ]
+    },
+    {
+      "id": "xc-03",
+      "category": "cross_chunk",
+      "dataset": "面试八股文",
+      "question": "BOM 里 navigator 和 screen 分别提供什么信息？",
+      "abstain_expected": false,
+      "retrieval": {
+        "hit@1": 0.0,
+        "evidence_recall@1": 0.0,
+        "source_recall@1": 1.0,
+        "hit@3": 1.0,
+        "evidence_recall@3": 0.5,
+        "source_recall@3": 1.0,
+        "hit@5": 1.0,
+        "evidence_recall@5": 1.0,
+        "source_recall@5": 1.0,
+        "hit@10": 1.0,
+        "evidence_recall@10": 1.0,
+        "source_recall@10": 1.0,
+        "mrr": 0.5
+      },
+      "retrieval_raw": {
+        "hit@1": 0.0,
+        "evidence_recall@1": 0.0,
+        "source_recall@1": 1.0,
+        "hit@3": 1.0,
+        "evidence_recall@3": 0.5,
+        "source_recall@3": 1.0,
+        "hit@5": 1.0,
+        "evidence_recall@5": 1.0,
+        "source_recall@5": 1.0,
+        "hit@10": 1.0,
+        "evidence_recall@10": 1.0,
+        "source_recall@10": 1.0,
+        "mrr": 0.5
+      },
+      "hit_count": 10,
+      "no_hits": false,
+      "reason": "no_score",
+      "low_relevance": false,
+      "detail_k": 5,
+      "matched_evidence": [
+        "`navigator` 对象主要用来获取浏览器的属性",
+        "保存的纯粹是客户端能力信息"
+      ],
+      "missing_evidence": [],
+      "hits": [
+        {
+          "rank": 1,
+          "document_name": "BOM.md",
+          "chunk_id": "0d5cbd1990c25ddfacdef4c686926d53",
+          "score": 0.6073697,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 2,
+          "document_name": "BOM.md",
+          "chunk_id": "68ebb8ff2a7c59b18fba1597e9b4fccd",
+          "score": 0.67051005,
+          "rerank_score": null,
+          "matched_evidence": [
+            "保存的纯粹是客户端能力信息"
+          ]
+        },
+        {
+          "rank": 3,
+          "document_name": "BOM.md",
+          "chunk_id": "cf0a8079e3c7598ba3f5184adc3bfccd",
+          "score": 0.53077114,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 4,
+          "document_name": "BOM.md",
+          "chunk_id": "0012109ef64554a9b33b042baa389528",
+          "score": 0.6175537,
+          "rerank_score": null,
+          "matched_evidence": [
+            "`navigator` 对象主要用来获取浏览器的属性"
+          ]
+        },
+        {
+          "rank": 5,
+          "document_name": "animation.md",
+          "chunk_id": "c611ba9930545d5a947ff8bfeaef35e1",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 6,
+          "document_name": "prototype.md",
+          "chunk_id": "293848c5fc7d527f99031ec7d7199f55",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 7,
+          "document_name": "BOM.md",
+          "chunk_id": "34d861ffa45c568b97a959dd5054c61c",
+          "score": 0.5392822,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 8,
+          "document_name": "HTTP_HTTPS.md",
+          "chunk_id": "3f05c70a875059c6b308cca2be53e1c3",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 9,
+          "document_name": "BOM.md",
+          "chunk_id": "b3ed72502d725f54846ade29661f1aa4",
+          "score": 0.5241667,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 10,
+          "document_name": "proxy.md",
+          "chunk_id": "a6325d69829058c2936606ac111db67a",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        }
+      ]
+    },
+    {
+      "id": "xc-04",
+      "category": "cross_chunk",
+      "dataset": "面试八股文",
+      "question": "Vue 项目里 axios 的请求统一处理与 Vue3 的响应式实现分别依赖哪些核心机制？",
+      "abstain_expected": false,
+      "retrieval": {
+        "hit@1": 0.0,
+        "evidence_recall@1": 0.0,
+        "source_recall@1": 0.5,
+        "hit@3": 0.0,
+        "evidence_recall@3": 0.0,
+        "source_recall@3": 0.5,
+        "hit@5": 1.0,
+        "evidence_recall@5": 0.5,
+        "source_recall@5": 0.5,
+        "hit@10": 1.0,
+        "evidence_recall@10": 0.5,
+        "source_recall@10": 0.5,
+        "mrr": 0.25
+      },
+      "retrieval_raw": {
+        "hit@1": 0.0,
+        "evidence_recall@1": 0.0,
+        "source_recall@1": 0.5,
+        "hit@3": 0.0,
+        "evidence_recall@3": 0.0,
+        "source_recall@3": 0.5,
+        "hit@5": 1.0,
+        "evidence_recall@5": 0.5,
+        "source_recall@5": 0.5,
+        "hit@10": 1.0,
+        "evidence_recall@10": 0.5,
+        "source_recall@10": 0.5,
+        "mrr": 0.25
+      },
+      "hit_count": 10,
+      "no_hits": false,
+      "reason": "no_score",
+      "low_relevance": false,
+      "detail_k": 5,
+      "matched_evidence": [
+        "axios.interceptors.request.use("
+      ],
+      "missing_evidence": [
+        "`Proxy`的监听是针对一个对象的"
+      ],
+      "hits": [
+        {
+          "rank": 1,
+          "document_name": "axios.md",
+          "chunk_id": "90103c2ca9ab5a899aebbf8500134725",
+          "score": 0.57983243,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 2,
+          "document_name": "axios.md",
+          "chunk_id": "ad015de9a65052ddbff2126f2e308d1d",
+          "score": 0.5549388,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 3,
+          "document_name": "axios.md",
+          "chunk_id": "f220954993615598aed4e99a457ae25f",
+          "score": 0.5550991,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 4,
+          "document_name": "axios.md",
+          "chunk_id": "dbf24fa2ab1751d19d5677d7f6bfce58",
+          "score": 0.49868345,
+          "rerank_score": null,
+          "matched_evidence": [
+            "axios.interceptors.request.use("
+          ]
+        },
+        {
+          "rank": 5,
+          "document_name": "axios.md",
+          "chunk_id": "0aeeca2467705e08a2427ff10a6a26a8",
+          "score": 0.49669465,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 6,
+          "document_name": "axios.md",
+          "chunk_id": "25bc15998ff05c35b481d5c3c7bef32a",
+          "score": 0.50355184,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 7,
+          "document_name": "axios.md",
+          "chunk_id": "f8ff8cb12d025334bba18aeed39c12e4",
+          "score": 0.5586065,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 8,
+          "document_name": "axios.md",
+          "chunk_id": "a668959325a756c4891cd162275ff555",
+          "score": 0.5322111,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 9,
+          "document_name": "axios.md",
+          "chunk_id": "bb9d5efcd28653c28291f43c9905a5b8",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 10,
+          "document_name": "axios.md",
+          "chunk_id": "e72bc0cd82995da4b38ec61b2127ad0f",
+          "score": 0.5268865,
+          "rerank_score": null,
+          "matched_evidence": []
+        }
+      ]
+    },
+    {
+      "id": "xc-05",
+      "category": "cross_chunk",
+      "dataset": "面试八股文",
+      "question": "CSS 动画里 transition 与 animation 的实现方式有什么不同？",
+      "abstain_expected": false,
+      "retrieval": {
+        "hit@1": 1.0,
+        "evidence_recall@1": 0.5,
+        "source_recall@1": 1.0,
+        "hit@3": 1.0,
+        "evidence_recall@3": 0.5,
+        "source_recall@3": 1.0,
+        "hit@5": 1.0,
+        "evidence_recall@5": 1.0,
+        "source_recall@5": 1.0,
+        "hit@10": 1.0,
+        "evidence_recall@10": 1.0,
+        "source_recall@10": 1.0,
+        "mrr": 1.0
+      },
+      "retrieval_raw": {
+        "hit@1": 1.0,
+        "evidence_recall@1": 0.5,
+        "source_recall@1": 1.0,
+        "hit@3": 1.0,
+        "evidence_recall@3": 0.5,
+        "source_recall@3": 1.0,
+        "hit@5": 1.0,
+        "evidence_recall@5": 1.0,
+        "source_recall@5": 1.0,
+        "hit@10": 1.0,
+        "evidence_recall@10": 1.0,
+        "source_recall@10": 1.0,
+        "mrr": 1.0
+      },
+      "hit_count": 10,
+      "no_hits": false,
+      "reason": "no_score",
+      "low_relevance": false,
+      "detail_k": 5,
+      "matched_evidence": [
+        "transition 实现渐变动画",
+        "通过 `@keyframes` 来定义关键帧"
+      ],
+      "missing_evidence": [],
+      "hits": [
+        {
+          "rank": 1,
+          "document_name": "animation.md",
+          "chunk_id": "5a49c29578c75c249255a1e7419623a8",
+          "score": 0.7486201,
+          "rerank_score": null,
+          "matched_evidence": [
+            "transition 实现渐变动画"
+          ]
+        },
+        {
+          "rank": 2,
+          "document_name": "animation.md",
+          "chunk_id": "b73169ad27e5569fb62c7c48cb8fe903",
+          "score": 0.65123546,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 3,
+          "document_name": "animation.md",
+          "chunk_id": "7870775c12795f0b8038c13a5300d569",
+          "score": 0.63339794,
+          "rerank_score": null,
+          "matched_evidence": [
+            "transition 实现渐变动画"
+          ]
+        },
+        {
+          "rank": 4,
+          "document_name": "animation.md",
+          "chunk_id": "c611ba9930545d5a947ff8bfeaef35e1",
+          "score": 0.5886446,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 5,
+          "document_name": "animation.md",
+          "chunk_id": "da6b2054325b59d8814bf31220719bb9",
+          "score": 0.58502936,
+          "rerank_score": null,
+          "matched_evidence": [
+            "通过 `@keyframes` 来定义关键帧"
+          ]
+        },
+        {
+          "rank": 6,
+          "document_name": "animation.md",
+          "chunk_id": "abce46fd0ca45b0e88af4db2adc20c58",
+          "score": 0.56840086,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 7,
+          "document_name": "animation.md",
+          "chunk_id": "a15d66fb84c45a8c8a7ead1f5ca40ac6",
+          "score": 0.56821,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 8,
+          "document_name": "animation.md",
+          "chunk_id": "7380ab50486a54889ec4d0bf512f99bf",
+          "score": 0.65006524,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 9,
+          "document_name": "animation.md",
+          "chunk_id": "b947f9cca781560080379182a8711c9c",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 10,
+          "document_name": "animation.md",
+          "chunk_id": "fbc0e2cc2088535388df52b9af3ba867",
+          "score": 0.5665679,
+          "rerank_score": null,
+          "matched_evidence": []
+        }
+      ]
+    },
+    {
+      "id": "na-01",
+      "category": "no_answer",
+      "dataset": "面试八股文",
+      "question": "公司年会的具体安排是什么？",
+      "abstain_expected": true,
+      "retrieval": null,
+      "retrieval_raw": null,
+      "hit_count": 0,
+      "no_hits": true,
+      "reason": "no_hits",
+      "low_relevance": false,
+      "detail_k": 5,
+      "matched_evidence": [],
+      "missing_evidence": [],
+      "hits": []
+    },
+    {
+      "id": "na-02",
+      "category": "no_answer",
+      "dataset": "面试八股文",
+      "question": "今天北京的天气怎么样？",
+      "abstain_expected": true,
+      "retrieval": null,
+      "retrieval_raw": null,
+      "hit_count": 0,
+      "no_hits": true,
+      "reason": "no_hits",
+      "low_relevance": false,
+      "detail_k": 5,
+      "matched_evidence": [],
+      "missing_evidence": [],
+      "hits": []
+    },
+    {
+      "id": "na-03",
+      "category": "no_answer",
+      "dataset": "面试八股文",
+      "question": "Kubernetes 集群应该怎么部署？",
+      "abstain_expected": true,
+      "retrieval": null,
+      "retrieval_raw": null,
+      "hit_count": 0,
+      "no_hits": true,
+      "reason": "no_hits",
+      "low_relevance": false,
+      "detail_k": 5,
+      "matched_evidence": [],
+      "missing_evidence": [],
+      "hits": []
+    },
+    {
+      "id": "na-04",
+      "category": "no_answer",
+      "dataset": "面试八股文",
+      "question": "公司报销流程需要提交哪些材料？",
+      "abstain_expected": true,
+      "retrieval": null,
+      "retrieval_raw": null,
+      "hit_count": 0,
+      "no_hits": true,
+      "reason": "no_hits",
+      "low_relevance": false,
+      "detail_k": 5,
+      "matched_evidence": [],
+      "missing_evidence": [],
+      "hits": []
+    },
+    {
+      "id": "na-05",
+      "category": "no_answer",
+      "dataset": "面试八股文",
+      "question": "MySQL 索引优化的最佳实践是什么？",
+      "abstain_expected": true,
+      "retrieval": null,
+      "retrieval_raw": null,
+      "hit_count": 0,
+      "no_hits": true,
+      "reason": "no_hits",
+      "low_relevance": false,
+      "detail_k": 5,
+      "matched_evidence": [],
+      "missing_evidence": [],
+      "hits": []
+    },
+    {
+      "id": "fact-08",
+      "category": "simple_fact",
+      "dataset": "分块验证库",
+      "question": "乐堡小程序里哪些能力必须绑定手机号才能使用？",
+      "abstain_expected": false,
+      "retrieval": {
+        "hit@1": 1.0,
+        "evidence_recall@1": 1.0,
+        "source_recall@1": 1.0,
+        "hit@3": 1.0,
+        "evidence_recall@3": 1.0,
+        "source_recall@3": 1.0,
+        "hit@5": 1.0,
+        "evidence_recall@5": 1.0,
+        "source_recall@5": 1.0,
+        "hit@10": 1.0,
+        "evidence_recall@10": 1.0,
+        "source_recall@10": 1.0,
+        "mrr": 1.0
+      },
+      "retrieval_raw": {
+        "hit@1": 1.0,
+        "evidence_recall@1": 1.0,
+        "source_recall@1": 1.0,
+        "hit@3": 1.0,
+        "evidence_recall@3": 1.0,
+        "source_recall@3": 1.0,
+        "hit@5": 1.0,
+        "evidence_recall@5": 1.0,
+        "source_recall@5": 1.0,
+        "hit@10": 1.0,
+        "evidence_recall@10": 1.0,
+        "source_recall@10": 1.0,
+        "mrr": 1.0
+      },
+      "hit_count": 4,
+      "no_hits": false,
+      "reason": "no_score",
+      "low_relevance": false,
+      "detail_k": 5,
+      "matched_evidence": [
+        "必须绑定手机号才能用的能力，主要集中在"
+      ],
+      "missing_evidence": [],
+      "hits": [
+        {
+          "rank": 1,
+          "document_name": "说明.txt",
+          "chunk_id": "c2bb8dcffcf05caeb04468b7acb17c52",
+          "score": 0.34398383,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 2,
+          "document_name": "说明.txt",
+          "chunk_id": "97ce616695cd5aa5b412f2713aa5251b",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        }
+      ]
+    },
+    {
+      "id": "kw-05",
+      "category": "keyword",
+      "dataset": "分块验证库",
+      "question": "任务配置里新增的 isOpenBeauty 字段是做什么用的？",
+      "abstain_expected": false,
+      "retrieval": {
+        "hit@1": 1.0,
+        "evidence_recall@1": 1.0,
+        "source_recall@1": 1.0,
+        "hit@3": 1.0,
+        "evidence_recall@3": 1.0,
+        "source_recall@3": 1.0,
+        "hit@5": 1.0,
+        "evidence_recall@5": 1.0,
+        "source_recall@5": 1.0,
+        "hit@10": 1.0,
+        "evidence_recall@10": 1.0,
+        "source_recall@10": 1.0,
+        "mrr": 1.0
+      },
+      "retrieval_raw": {
+        "hit@1": 1.0,
+        "evidence_recall@1": 1.0,
+        "source_recall@1": 1.0,
+        "hit@3": 1.0,
+        "evidence_recall@3": 1.0,
+        "source_recall@3": 1.0,
+        "hit@5": 1.0,
+        "evidence_recall@5": 1.0,
+        "source_recall@5": 1.0,
+        "hit@10": 1.0,
+        "evidence_recall@10": 1.0,
+        "source_recall@10": 1.0,
+        "mrr": 1.0
+      },
+      "hit_count": 4,
+      "no_hits": false,
+      "reason": "no_score",
+      "low_relevance": false,
+      "detail_k": 5,
+      "matched_evidence": [
+        "任务配置中增加是否开启美容师查看isOpenBeauty"
+      ],
+      "missing_evidence": [],
+      "hits": [
+        {
+          "rank": 1,
+          "document_name": "营销管理系统后台需求说明.docx",
+          "chunk_id": "eb384171f180517a8307bafdd6d1868b",
+          "score": 0.58981895,
+          "rerank_score": null,
+          "matched_evidence": [
+            "任务配置中增加是否开启美容师查看isOpenBeauty"
+          ]
+        },
+        {
+          "rank": 2,
+          "document_name": "说明.txt",
+          "chunk_id": "c2bb8dcffcf05caeb04468b7acb17c52",
+          "score": 0.32961202,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 3,
+          "document_name": "关于乐堡隐私协议说明.docx",
+          "chunk_id": "4fec1c45204b5c779225ecf3916c5ddf",
+          "score": 0.30218413,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 4,
+          "document_name": "说明.txt",
+          "chunk_id": "97ce616695cd5aa5b412f2713aa5251b",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        }
+      ]
+    },
+    {
+      "id": "pn-06",
+      "category": "proper_noun",
+      "dataset": "分块验证库",
+      "question": "营销后台管理系统任务中心在需求里的简称是什么？",
+      "abstain_expected": false,
+      "retrieval": {
+        "hit@1": 1.0,
+        "evidence_recall@1": 1.0,
+        "source_recall@1": 1.0,
+        "hit@3": 1.0,
+        "evidence_recall@3": 1.0,
+        "source_recall@3": 1.0,
+        "hit@5": 1.0,
+        "evidence_recall@5": 1.0,
+        "source_recall@5": 1.0,
+        "hit@10": 1.0,
+        "evidence_recall@10": 1.0,
+        "source_recall@10": 1.0,
+        "mrr": 1.0
+      },
+      "retrieval_raw": {
+        "hit@1": 1.0,
+        "evidence_recall@1": 1.0,
+        "source_recall@1": 1.0,
+        "hit@3": 1.0,
+        "evidence_recall@3": 1.0,
+        "source_recall@3": 1.0,
+        "hit@5": 1.0,
+        "evidence_recall@5": 1.0,
+        "source_recall@5": 1.0,
+        "hit@10": 1.0,
+        "evidence_recall@10": 1.0,
+        "source_recall@10": 1.0,
+        "mrr": 1.0
+      },
+      "hit_count": 5,
+      "no_hits": false,
+      "reason": "no_score",
+      "low_relevance": false,
+      "detail_k": 5,
+      "matched_evidence": [
+        "营销后台管理系统任务中心（gue）功能调整"
+      ],
+      "missing_evidence": [],
+      "hits": [
+        {
+          "rank": 1,
+          "document_name": "营销管理系统后台需求说明.docx",
+          "chunk_id": "eb384171f180517a8307bafdd6d1868b",
+          "score": 0.53434134,
+          "rerank_score": null,
+          "matched_evidence": [
+            "营销后台管理系统任务中心（gue）功能调整"
+          ]
+        },
+        {
+          "rank": 2,
+          "document_name": "说明.txt",
+          "chunk_id": "97ce616695cd5aa5b412f2713aa5251b",
+          "score": 0.3137501,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 3,
+          "document_name": "说明.txt",
+          "chunk_id": "c2bb8dcffcf05caeb04468b7acb17c52",
+          "score": 0.36451638,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 4,
+          "document_name": "关于乐堡隐私协议说明.docx",
+          "chunk_id": "4fec1c45204b5c779225ecf3916c5ddf",
+          "score": 0.38356653,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 5,
+          "document_name": "员工手册.txt",
+          "chunk_id": "05e96d09b11f51bf97efb7a40be4ca61",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        }
+      ]
+    },
+    {
+      "id": "mt-05",
+      "category": "multi_turn",
+      "dataset": "分块验证库",
+      "question": "预览普通页面和 Tab 切换需要先授权吗？",
+      "abstain_expected": false,
+      "retrieval": {
+        "hit@1": 1.0,
+        "evidence_recall@1": 1.0,
+        "source_recall@1": 1.0,
+        "hit@3": 1.0,
+        "evidence_recall@3": 1.0,
+        "source_recall@3": 1.0,
+        "hit@5": 1.0,
+        "evidence_recall@5": 1.0,
+        "source_recall@5": 1.0,
+        "hit@10": 1.0,
+        "evidence_recall@10": 1.0,
+        "source_recall@10": 1.0,
+        "mrr": 1.0
+      },
+      "retrieval_raw": {
+        "hit@1": 1.0,
+        "evidence_recall@1": 1.0,
+        "source_recall@1": 1.0,
+        "hit@3": 1.0,
+        "evidence_recall@3": 1.0,
+        "source_recall@3": 1.0,
+        "hit@5": 1.0,
+        "evidence_recall@5": 1.0,
+        "source_recall@5": 1.0,
+        "hit@10": 1.0,
+        "evidence_recall@10": 1.0,
+        "source_recall@10": 1.0,
+        "mrr": 1.0
+      },
+      "hit_count": 4,
+      "no_hits": false,
+      "reason": "no_score",
+      "low_relevance": false,
+      "detail_k": 5,
+      "matched_evidence": [
+        "普通页面浏览、Tab 切换"
+      ],
+      "missing_evidence": [],
+      "hits": [
+        {
+          "rank": 1,
+          "document_name": "说明.txt",
+          "chunk_id": "c2bb8dcffcf05caeb04468b7acb17c52",
+          "score": 0.326762,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 2,
+          "document_name": "员工手册.txt",
+          "chunk_id": "05e96d09b11f51bf97efb7a40be4ca61",
+          "score": 0.3111096,
+          "rerank_score": null,
+          "matched_evidence": []
+        }
+      ]
+    },
+    {
+      "id": "ana-05",
+      "category": "anaphora",
+      "dataset": "分块验证库",
+      "question": "这个是怎么规定的？",
+      "abstain_expected": false,
+      "retrieval": {
+        "hit@1": 0.0,
+        "evidence_recall@1": 0.0,
+        "source_recall@1": 0.0,
+        "hit@3": 0.0,
+        "evidence_recall@3": 0.0,
+        "source_recall@3": 0.0,
+        "hit@5": 0.0,
+        "evidence_recall@5": 0.0,
+        "source_recall@5": 0.0,
+        "hit@10": 0.0,
+        "evidence_recall@10": 0.0,
+        "source_recall@10": 0.0,
+        "mrr": 0.0
+      },
+      "retrieval_raw": {
+        "hit@1": 0.0,
+        "evidence_recall@1": 0.0,
+        "source_recall@1": 0.0,
+        "hit@3": 0.0,
+        "evidence_recall@3": 0.0,
+        "source_recall@3": 0.0,
+        "hit@5": 0.0,
+        "evidence_recall@5": 0.0,
+        "source_recall@5": 0.0,
+        "hit@10": 0.0,
+        "evidence_recall@10": 0.0,
+        "source_recall@10": 0.0,
+        "mrr": 0.0
+      },
+      "hit_count": 2,
+      "no_hits": false,
+      "reason": "no_score",
+      "low_relevance": false,
+      "detail_k": 5,
+      "matched_evidence": [],
+      "missing_evidence": [
+        "必须绑定手机号才能用的能力，主要集中在"
+      ],
+      "hits": [
+        {
+          "rank": 1,
+          "document_name": "员工手册.txt",
+          "chunk_id": "05e96d09b11f51bf97efb7a40be4ca61",
+          "score": 0.3189865,
+          "rerank_score": null,
+          "matched_evidence": []
+        },
+        {
+          "rank": 2,
+          "document_name": "营销管理系统后台需求说明.docx",
+          "chunk_id": "eb384171f180517a8307bafdd6d1868b",
+          "score": null,
+          "rerank_score": null,
+          "matched_evidence": []
+        }
+      ]
+    },
+    {
+      "id": "na-06",
+      "category": "no_answer",
+      "dataset": "分块验证库",
+      "question": "员工持股计划的参与条件是什么？",
+      "abstain_expected": true,
+      "retrieval": null,
+      "retrieval_raw": null,
+      "hit_count": 0,
+      "no_hits": true,
+      "reason": "no_hits",
+      "low_relevance": false,
+      "detail_k": 5,
+      "matched_evidence": [],
+      "missing_evidence": [],
+      "hits": []
+    }
+  ]
+}

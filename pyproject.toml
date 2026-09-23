@@ -60,6 +60,10 @@ asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 testpaths = ["tests"]
 pythonpath = ["."]
+# 需要真实环境（MySQL + Qdrant + embedding）的 RAG 评测用例：见 tests/rag/README.md
+markers = [
+    "rag_eval: RAG 检索层评测（需真实 MySQL / Qdrant / embedding；环境不可达时自动 skip）",
+]
 
 [tool.mypy]
 python_version = "3.12"

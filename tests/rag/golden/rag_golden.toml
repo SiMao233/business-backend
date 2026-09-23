@@ -1,0 +1,476 @@
+# RAG Golden Dataset —— 固定测试集（40 题）
+#
+# 用途：任何改动 Chunking / Embedding / Retriever / Reranker / Query Rewrite 之后，
+# 用同一套题目重新跑评测，判断「变好还是变差」（用法见 tests/rag/README.md）。
+#
+# 三个必守约定（否则数据集会静默失效）：
+# 1. `expected_evidence` 必须**逐字**来自原文档（建议整句复制），且不跨 chunk 边界
+#    —— 判定按「内容包含」而非 chunk 主键，因此重新切分后依然有效；
+# 2. `expected_source` 用**文档名**（比 document_id 稳定），同一主题多文档时列全；
+# 3. 无答案题（`expected_behavior = "abstain"`）**不要**填 evidence/source
+#    —— 这类题不参与 Recall/MRR，只判「是否拒答」。
+#
+# 修改数据集后务必跑：.venv/bin/pytest tests/rag/test_golden_dataset.py -q
+# 新增题目后建议跑一次完整检索评测（会重新核对证据子串是否真的能命中）。
+
+version = 1
+
+# 回归门禁阈值（baseline，2026-09-21 首次实测后校准）
+#
+# 实测（默认配置：hybrid 开 / rerank 关 / rewrite 关；40 题）：
+#   hit@5 = 0.882   evidence_recall@5 = 0.868   mrr = 0.805
+# 门禁 = 实测约 -10% 余量：用于吸收 embedding / 网关抖动与数据集的小幅调整，
+# 但仍能抓住真实退化（例如切分改动导致 -20%）。
+#
+# 约定（改阈值/改数据集前请先读这段）：
+# - 只要求「不低于门禁」，**不要求指标必须提升** —— 这是回归门禁，不是性能目标；
+# - `hit@1` 实测 0.735，**不加入硬门禁**，但保留在报告与对比表中观察；
+# - ⚠️ 一旦 rerank / rewrite / embedding 模型 / 切分参数 / 本数据集发生实质变化，
+#   必须先重新实测（`--tag` 标注变化）→ 再校准阈值 → 再更新 baseline；
+#   否则门禁会误报：这些开关会显著改变指标数值。
+[thresholds]
+hit_at_5 = 0.80
+evidence_recall_at_5 = 0.78
+mrr = 0.72
+
+# ============================================================================
+# 数据集 1：面试八股文（前端面试题 + 员工手册，7 文档 / 68 切块）
+# ============================================================================
+[[datasets]]
+name = "面试八股文"
+knowledge_base_id = "e730c993415742c48733e4d526ff9959"
+
+# ---- simple_fact：简单事实（单点、答案明确）----
+
+[[datasets.questions]]
+id = "fact-01"
+category = "simple_fact"
+question = "员工手册规定的标准工作时间是几点到几点？"
+expected_answer = "周一至周五上午九点到下午六点，午休一小时"
+expected_answer_points = ["上午九点", "下午六点"]
+expected_source = ["员工手册.txt"]
+expected_evidence = ["工作时间为周一至周五上午九点到下午六点"]
+notes = "考勤制度首句，稳定性最好的锚点"
+
+[[datasets.questions]]
+id = "fact-02"
+category = "simple_fact"
+question = "迟到或早退超过三十分钟会怎么处理？"
+expected_answer = "按半天事假处理"
+expected_answer_points = ["半天事假"]
+expected_source = ["员工手册.txt"]
+expected_evidence = ["迟到或早退超过三十分钟按半天事假处理"]
+
+[[datasets.questions]]
+id = "fact-03"
+category = "simple_fact"
+question = "员工每年有多少天带薪年假？什么时候可以使用？"
+expected_answer = "每年十五天，入职满一年后即可使用"
+expected_answer_points = ["十五天", "满一年"]
+expected_source = ["员工手册.txt"]
+expected_evidence = ["员工每年享有十五天带薪年假，入职满一年后即可使用"]
+
+[[datasets.questions]]
+id = "fact-04"
+category = "simple_fact"
+question = "公司每月什么时候发工资？"
+expected_answer = "每月十号发放上月工资，通过银行代发"
+expected_answer_points = ["十号"]
+expected_source = ["员工手册.txt"]
+expected_evidence = ["公司每月十号发放上月工资"]
+
+[[datasets.questions]]
+id = "fact-05"
+category = "simple_fact"
+question = "HTTP 和 HTTPS 的默认端口分别是什么？"
+expected_answer = "HTTP 是 80，HTTPS 是 443"
+expected_answer_points = ["80", "443"]
+expected_source = ["HTTP_HTTPS.md"]
+expected_evidence = ["HTTP是80，HTTPS是443"]
+
+[[datasets.questions]]
+id = "fact-06"
+category = "simple_fact"
+question = "HTTPS 是建立在什么协议之上的？"
+expected_answer = "HTTPS 运行在 SSL/TLS 协议之上，即 HTTPS = HTTP + SSL/TLS"
+expected_answer_points = ["SSL/TLS"]
+expected_source = ["HTTP_HTTPS.md"]
+expected_evidence = ["即 HTTPS = HTTP + SSL/TLS"]
+
+[[datasets.questions]]
+id = "fact-07"
+category = "simple_fact"
+question = "axios 封装示例里设置的请求超时时间是多少毫秒？"
+expected_answer = "30000 毫秒"
+expected_answer_points = ["30000"]
+expected_source = ["axios.md"]
+expected_evidence = ["timeout: 30000"]
+
+# ---- keyword：关键词 / 标识符（精确子串命中，考察混合检索的关键词路）----
+
+[[datasets.questions]]
+id = "kw-01"
+category = "keyword"
+question = "axios.interceptors.request.use 是用来注册什么的？"
+expected_answer = "注册请求拦截器，可在每个请求发出前统一处理（如加 token）"
+expected_answer_points = ["请求拦截器"]
+expected_source = ["axios.md"]
+expected_evidence = ["axios.interceptors.request.use("]
+
+[[datasets.questions]]
+id = "kw-02"
+category = "keyword"
+question = "axios.interceptors.response.use 是用来注册什么的？"
+expected_answer = "注册响应拦截器，可在收到响应后先做一层处理（如判断登录状态）"
+expected_answer_points = ["响应拦截器"]
+expected_source = ["axios.md"]
+expected_evidence = ["axios.interceptors.response.use("]
+
+[[datasets.questions]]
+id = "kw-03"
+category = "keyword"
+question = "用 Object.defineProperty 实现响应式时，劫持能做到什么程度？"
+expected_answer = "只能遍历对象属性进行劫持"
+expected_answer_points = ["遍历对象属性"]
+expected_source = ["proxy.md"]
+expected_evidence = ["`Object.defineProperty`只能遍历对象属性进行劫持"]
+
+[[datasets.questions]]
+id = "kw-04"
+category = "keyword"
+question = "Proxy 一共有多少种拦截方法？"
+expected_answer = "多达 13 种，不限于 apply、ownKeys、deleteProperty、has 等"
+expected_answer_points = ["13"]
+expected_source = ["proxy.md"]
+expected_evidence = ["`Proxy`有多达13种拦截方法"]
+
+# ---- proper_noun：专有名词（术语必须答对，考察语义召回）----
+
+[[datasets.questions]]
+id = "pn-01"
+category = "proper_noun"
+question = "JavaScript 原型链的终点是什么？"
+expected_answer = "null"
+expected_answer_points = ["null"]
+expected_source = ["prototype.md"]
+expected_evidence = ["这样原型链的终点就是 `null`"]
+
+[[datasets.questions]]
+id = "pn-02"
+category = "proper_noun"
+question = "Function.prototype 和 Function.__proto__ 同时指向什么？"
+expected_answer = "同时指向内置匿名函数 anonymous"
+expected_answer_points = ["anonymous"]
+expected_source = ["prototype.md"]
+expected_evidence = ["同时指向内置匿名函数 `anonymous`"]
+
+[[datasets.questions]]
+id = "pn-03"
+category = "proper_noun"
+question = "为什么 Vue3 里要用 Proxy API 替代 defineProperty API？"
+expected_answer = "defineProperty 检测不到对象属性的添加与删除、数组 API 方法无法监听，且需遍历深层监听，所以 Vue3 改用 Proxy"
+expected_answer_points = ["检测不到", "数组"]
+expected_source = ["proxy.md"]
+expected_evidence = ["检测不到对象属性的添加和删除"]
+
+[[datasets.questions]]
+id = "pn-04"
+category = "proper_noun"
+question = "axios 是基于什么来执行 HTTP 请求的？"
+expected_answer = "基于 XMLHttpRequest，支持浏览器端与 Node.js 端"
+expected_answer_points = ["XMLHttpRequest"]
+expected_source = ["axios.md"]
+expected_evidence = ["基于 `XMLHttpRequest` 服务来执行 `HTTP` 请求"]
+
+[[datasets.questions]]
+id = "pn-05"
+category = "proper_noun"
+question = "CSS 的 animation 属性是由多少个属性简写而成的？"
+expected_answer = "由 8 个属性简写而成"
+expected_answer_points = ["8"]
+expected_source = ["animation.md"]
+expected_evidence = ["`animation`是由 8 个属性的简写"]
+
+# ---- multi_turn：多轮（问题本身可独立检索，但需要历史才能准确理解上下文）----
+
+[[datasets.questions]]
+id = "mt-01"
+category = "multi_turn"
+question = "请求拦截器一般用来做什么？"
+expected_answer = "在每个请求里加上 token，做统一处理后便于维护"
+expected_answer_points = ["token"]
+expected_source = ["axios.md"]
+expected_evidence = ["请求拦截器可以在每个请求里加上token"]
+history = [
+    ["user", "Vue 项目里 axios 一般怎么封装？"],
+    ["assistant", "通常用 axios.create 建实例，配置 baseURL 与超时，再用拦截器统一处理请求头与错误。"],
+]
+
+[[datasets.questions]]
+id = "mt-02"
+category = "multi_turn"
+question = "用 defineProperty 时数组的 API 方法能监听到吗？"
+expected_answer = "不能，数组 API 方法无法监听到"
+expected_answer_points = ["无法监听"]
+expected_source = ["proxy.md"]
+expected_evidence = ["数组`API`方法无法监听到"]
+history = [
+    ["user", "Vue3 里为什么用 Proxy 替代 defineProperty？"],
+    ["assistant", "defineProperty 只能劫持对象的已有属性，Proxy 可以在对象外层统一拦截。"],
+]
+
+[[datasets.questions]]
+id = "mt-03"
+category = "multi_turn"
+question = "navigator 对象主要用来做什么？"
+expected_answer = "主要用来获取浏览器属性、区分浏览器类型"
+expected_answer_points = ["获取浏览器的属性"]
+expected_source = ["BOM.md"]
+expected_evidence = ["`navigator` 对象主要用来获取浏览器的属性"]
+history = [
+    ["user", "前端里的 BOM 都包含哪些常见对象？"],
+    ["assistant", "常见的有 window、location、navigator、screen、history 等。"],
+]
+
+[[datasets.questions]]
+id = "mt-04"
+category = "multi_turn"
+question = "年假需要提前多久在 OA 系统提交申请？"
+expected_answer = "提前三天提交申请，经直属主管审批通过后方可休假"
+expected_answer_points = ["三天"]
+expected_source = ["员工手册.txt"]
+expected_evidence = ["年假需提前三天在 OA 系统提交申请"]
+history = [
+    ["user", "员工手册里的休假制度是怎么规定的？"],
+    ["assistant", "员工每年享有十五天带薪年假，入职满一年后即可使用，需要走审批流程。"],
+]
+
+# ---- anaphora：指代（问题里没有主题词，必须靠历史 + Query Rewrite 才可能召回）----
+
+[[datasets.questions]]
+id = "ana-01"
+category = "anaphora"
+question = "那这个怎么办？"
+expected_answer = "迟到或早退超过三十分钟按半天事假处理"
+expected_answer_points = ["半天事假"]
+expected_source = ["员工手册.txt"]
+expected_evidence = ["迟到或早退超过三十分钟按半天事假处理"]
+history = [
+    ["user", "员工手册里的考勤制度是怎么规定的？"],
+    ["assistant", "公司实行标准工时制，工作时间为周一至周五上午九点到下午六点，午休一小时。"],
+]
+notes = "典型指代式追问：改写前几乎不可能命中，是 Query Rewrite 的核心评估场景"
+
+[[datasets.questions]]
+id = "ana-02"
+category = "anaphora"
+question = "它主要解决什么问题？"
+expected_answer = "HTTPS 是为了解决 HTTP 明文传输不安全的问题"
+expected_answer_points = ["不安全"]
+expected_source = ["HTTP_HTTPS.md"]
+expected_evidence = ["`HTTPS`出现正是为了解决`HTTP`不安全的特性"]
+history = [
+    ["user", "HTTP 和 HTTPS 有什么区别？"],
+    ["assistant", "HTTPS 在 HTTP 之上加了加密，默认端口是 443，能防窃听与篡改。"],
+]
+
+[[datasets.questions]]
+id = "ana-03"
+category = "anaphora"
+question = "它的拦截方法有多少种？"
+expected_answer = "多达 13 种"
+expected_answer_points = ["13"]
+expected_source = ["proxy.md"]
+expected_evidence = ["`Proxy`有多达13种拦截方法"]
+history = [
+    ["user", "Vue3 里为什么用 Proxy 替代 defineProperty？"],
+    ["assistant", "因为 defineProperty 无法监听属性增删与数组方法，Proxy 能代理整个对象。"],
+]
+
+[[datasets.questions]]
+id = "ana-04"
+category = "anaphora"
+question = "这个怎么定义关键帧？"
+expected_answer = "通过 @keyframes 来定义关键帧，其余帧由浏览器按计时函数插值计算"
+expected_answer_points = ["@keyframes"]
+expected_source = ["animation.md"]
+expected_evidence = ["通过 `@keyframes` 来定义关键帧"]
+history = [
+    ["user", "CSS3 动画有哪些实现方式？"],
+    ["assistant", "常见的有 transition、transform 以及 animation。"],
+]
+
+# ---- cross_chunk：跨 Chunk（证据分散在多个切块 / 多个文档，考验 Recall 与多命中）----
+
+[[datasets.questions]]
+id = "xc-01"
+category = "cross_chunk"
+question = "axios 封装里请求拦截器和响应拦截器分别做什么？"
+expected_answer = "请求拦截器在每个请求里加上 token；响应拦截器在收到响应后先做一层处理（如按状态码判断登录状态）"
+expected_answer_points = ["token", "状态码"]
+expected_source = ["axios.md"]
+expected_evidence = [
+    "请求拦截器可以在每个请求里加上token",
+    "响应拦截器可以在接收到响应后先做一层操作",
+]
+notes = "两条证据分处 axios.md 的相邻两个切块"
+
+[[datasets.questions]]
+id = "xc-02"
+category = "cross_chunk"
+question = "相比 defineProperty，Proxy 在监听方式上有什么不同？"
+expected_answer = "Proxy 的监听针对整个对象，而在 defineProperty 下只能遍历对象属性进行劫持"
+expected_answer_points = ["整个对象", "遍历"]
+expected_source = ["proxy.md"]
+expected_evidence = [
+    "`Proxy`的监听是针对一个对象的",
+    "`Object.defineProperty`只能遍历对象属性进行劫持",
+]
+
+[[datasets.questions]]
+id = "xc-03"
+category = "cross_chunk"
+question = "BOM 里 navigator 和 screen 分别提供什么信息？"
+expected_answer = "navigator 用来获取浏览器属性、区分浏览器类型；screen 保存客户端显示器的能力信息（如像素宽高）"
+expected_answer_points = ["浏览器类型", "像素"]
+expected_source = ["BOM.md"]
+expected_evidence = [
+    "`navigator` 对象主要用来获取浏览器的属性",
+    "保存的纯粹是客户端能力信息",
+]
+
+[[datasets.questions]]
+id = "xc-04"
+category = "cross_chunk"
+question = "Vue 项目里 axios 的请求统一处理与 Vue3 的响应式实现分别依赖哪些核心机制？"
+expected_answer = "axios 靠拦截器（如 axios.interceptors.request.use）做请求统一处理；Vue3 的响应式基于 Proxy 对整个对象监听"
+expected_answer_points = ["拦截器", "Proxy"]
+expected_source = ["axios.md", "proxy.md"]
+expected_evidence = [
+    "axios.interceptors.request.use(",
+    "`Proxy`的监听是针对一个对象的",
+]
+notes = "跨文档：证据分别在 axios.md 与 proxy.md，用来检验多文档召回能力"
+
+[[datasets.questions]]
+id = "xc-05"
+category = "cross_chunk"
+question = "CSS 动画里 transition 与 animation 的实现方式有什么不同？"
+expected_answer = "transition 实现渐变动画（样式过渡）；animation 通过 @keyframes 定义关键帧、其余帧由浏览器插值"
+expected_answer_points = ["渐变", "关键帧"]
+expected_source = ["animation.md"]
+expected_evidence = [
+    "transition 实现渐变动画",
+    "通过 `@keyframes` 来定义关键帧",
+]
+
+# ---- no_answer：知识库里确实没有答案（期望拒答，不参与检索指标）----
+
+[[datasets.questions]]
+id = "na-01"
+category = "no_answer"
+question = "公司年会的具体安排是什么？"
+expected_behavior = "abstain"
+expected_answer = "根据当前知识库，我无法确认这个问题。"
+notes = "员工手册只覆盖考勤/休假/薪酬，没有年会内容"
+
+[[datasets.questions]]
+id = "na-02"
+category = "no_answer"
+question = "今天北京的天气怎么样？"
+expected_behavior = "abstain"
+expected_answer = "根据当前知识库，我无法确认这个问题。"
+notes = "完全无关的实时信息，知识库里不存在任何天气数据"
+
+[[datasets.questions]]
+id = "na-03"
+category = "no_answer"
+question = "Kubernetes 集群应该怎么部署？"
+expected_behavior = "abstain"
+expected_answer = "根据当前知识库，我无法确认这个问题。"
+notes = "库内只有前端面试题与员工手册，无容器编排内容（Nginx 仅提到了解基本配置）"
+
+[[datasets.questions]]
+id = "na-04"
+category = "no_answer"
+question = "公司报销流程需要提交哪些材料？"
+expected_behavior = "abstain"
+expected_answer = "根据当前知识库，我无法确认这个问题。"
+notes = "员工手册只覆盖考勤、休假、薪酬福利三章，没有报销流程"
+
+[[datasets.questions]]
+id = "na-05"
+category = "no_answer"
+question = "MySQL 索引优化的最佳实践是什么？"
+expected_behavior = "abstain"
+expected_answer = "根据当前知识库，我无法确认这个问题。"
+notes = "说明.txt 里仅提到了解 Java 与 MySQL 基础操作，没有索引优化内容"
+
+# ============================================================================
+# 数据集 2：分块验证库（含 docx 文档，4 文档 / 5 切块）
+# 用途：覆盖 docx 解析与单块文档，同时验证跨知识库的评测隔离
+# ============================================================================
+[[datasets]]
+name = "分块验证库"
+knowledge_base_id = "e97a1befd1594f2c9f4a529628b269fe"
+
+[[datasets.questions]]
+id = "fact-08"
+category = "simple_fact"
+question = "乐堡小程序里哪些能力必须绑定手机号才能使用？"
+expected_answer = "扫码领奖/积分、积分商城/秒杀/礼品兑换、优惠券领取与使用、会员任务、H5 活动跳转等"
+expected_answer_points = ["扫码领奖", "优惠券"]
+expected_source = ["关于乐堡隐私协议说明.docx"]
+expected_evidence = ["必须绑定手机号才能用的能力，主要集中在"]
+
+[[datasets.questions]]
+id = "kw-05"
+category = "keyword"
+question = "任务配置里新增的 isOpenBeauty 字段是做什么用的？"
+expected_answer = "用于控制是否开启美容师查看"
+expected_answer_points = ["isOpenBeauty"]
+expected_source = ["营销管理系统后台需求说明.docx"]
+expected_evidence = ["任务配置中增加是否开启美容师查看isOpenBeauty"]
+
+[[datasets.questions]]
+id = "pn-06"
+category = "proper_noun"
+question = "营销后台管理系统任务中心在需求里的简称是什么？"
+expected_answer = "gue"
+expected_answer_points = ["gue"]
+expected_source = ["营销管理系统后台需求说明.docx"]
+expected_evidence = ["营销后台管理系统任务中心（gue）功能调整"]
+
+[[datasets.questions]]
+id = "mt-05"
+category = "multi_turn"
+question = "预览普通页面和 Tab 切换需要先授权吗？"
+expected_answer = "不需要，普通页面浏览、Tab 切换属于相对宽松、不受限的能力"
+expected_answer_points = ["不受限"]
+expected_source = ["关于乐堡隐私协议说明.docx"]
+expected_evidence = ["普通页面浏览、Tab 切换"]
+history = [
+    ["user", "乐堡小程序里哪些能力必须绑定手机号？"],
+    ["assistant", "扫码领奖、积分商城、优惠券领取、会员任务等核心营销能力都需要授权。"],
+]
+
+[[datasets.questions]]
+id = "ana-05"
+category = "anaphora"
+question = "这个是怎么规定的？"
+expected_answer = "必须绑定手机号才能用的能力主要集中在扫码领奖/积分、积分商城、优惠券等营销链路"
+expected_answer_points = ["绑定手机号"]
+expected_source = ["关于乐堡隐私协议说明.docx"]
+expected_evidence = ["必须绑定手机号才能用的能力，主要集中在"]
+history = [
+    ["user", "乐堡小程序里哪些能力需要先绑定手机号？"],
+    ["assistant", "主要是扫码、积分、优惠券与会员任务这类营销能力。"],
+]
+
+[[datasets.questions]]
+id = "na-06"
+category = "no_answer"
+question = "员工持股计划的参与条件是什么？"
+expected_behavior = "abstain"
+expected_answer = "根据当前知识库，我无法确认这个问题。"
+notes = "该库只有隐私协议与需求说明，无股权相关内容"

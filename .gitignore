@@ -41,6 +41,8 @@ logs/
 
 # 本地文件存储（上传文件，勿提交）
 storage/
+# RAG 评测的每次运行输出（体积大且可重建）；基线在 evals/baselines/ 里，**要提交**
+evals/runs/
 
 # RSA 密钥对（登录密码加密，私钥严禁提交）
 keys/

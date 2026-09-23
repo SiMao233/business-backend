@@ -1,6 +1,7 @@
-# scripts/ —— RAG 索引运维脚本
+# scripts/ —— RAG 运维与评测脚本
 
-两个**只读或需显式确认**的工具脚本，用于排查与修复 RAG 索引（MySQL ↔ Qdrant）一致性。
+共四个脚本：前两个用于排查与修复 RAG 索引（MySQL ↔ Qdrant）一致性，后两个用于 Query Rewrite
+真实 A/B 与 RAG 评测对比。除 `rag_reindex.py` 需显式加 `--yes` 才写数据外，其余均**只读**。
 
 ⚠️ **必须在项目根目录执行**：`.env` 与 `storage/` 都是相对路径（脚本内部已 `chdir` 到项目根，
 但请仍从根目录调用，避免 `.env` 被漏读）。
@@ -84,6 +85,45 @@
 内置场景需要知识库里确实有对应主题的文档，不匹配的场景会被自动跳过（不会误报）。
 
 退出码：`0` = 全部通过；`1` = 有断言失败。
+
+## 4. `rag_eval.py` —— RAG 评测与基线对比（只读）
+
+改动 Chunking / Embedding / Retriever / Reranker / Query Rewrite 之后，用固定测试集（Golden Dataset）
+判断「变好了还是变差了」。**数据集格式、指标定义与局限见 `tests/rag/README.md`。**
+
+```bash
+.venv/bin/python scripts/rag_eval.py                                  # 检索层评测（免 token，约 20s）
+.venv/bin/python scripts/rag_eval.py --tag "chunk=1200/200"           # 给本次运行打标签
+.venv/bin/python scripts/rag_eval.py --baseline latest                # 与上一次运行对比
+.venv/bin/python scripts/rag_eval.py --baseline default --fail-on-regression   # 有回退则退出码 1
+.venv/bin/python scripts/rag_eval.py --save-baseline default          # 认可当前结果 → 固化基线
+.venv/bin/python scripts/rag_eval.py --answers --limit 10             # 答案层（真实调用模型）
+.venv/bin/python scripts/rag_eval.py --answers --review-md evals/runs/review.md
+.venv/bin/python scripts/rag_eval.py --review-load evals/runs/review.md
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `--dataset PATH` | Golden Dataset 路径（默认 `tests/rag/golden/rag_golden.toml`） |
+| `--kb ID` | 覆盖数据集里的知识库（用于试跑新语料） |
+| `--k 1,3,5,10` | Recall@K 的 K 列表 |
+| `--top-k N` | 评测时临时使用的 top_k（默认 10：一次检索算出多个 K，排序与线上一致） |
+| `--answers` | 跑答案层（**真实调用模型，花 token**） |
+| `--limit N` / `--category X` | 快速子集调试（分类可重复指定） |
+| `--tag TEXT` | 本次运行标签（写进报告 meta，便于对比时辨认） |
+| `--out PATH` | 报告路径（默认 `evals/runs/eval-<时间戳>.json`，已 gitignore） |
+| `--baseline latest\|名称\|路径` | 与基线对比（`名称` → `evals/baselines/<名称>.json`） |
+| `--save-baseline NAME` | 固化基线（**该文件要提交**，这样跨会话/跨机器可比） |
+| `--review-md PATH` | 生成人工复核表（填完用 `--review-load` 汇总） |
+| `--review-load PATH` | 回读复核表并汇总通过率（未填题不计入分母） |
+| `--fail-on-regression` | 存在指标回退时退出码 1（便于以后接 CI） |
+
+输出：指标摘要（整体 + 分类 + 无答案题观测 + 原始问题对照）、阈值门禁结论，以及（带 `--baseline` 时）
+逐指标 delta 表与逐题改善/回归清单。
+
+退出码：`0` 正常；`1` 阈值未达标或存在回退；`2` 环境/参数错误（打印可读原因与排查命令）。
+⚠️ **全程只读**：不写数据库、不改索引；答案层也不落会话/消息/用量记录。
+⚠️ 单次报告约 120KB（含逐题 top-10 命中明细），因此 `evals/runs/` 不入库。
 
 ## 已知无害噪音
 

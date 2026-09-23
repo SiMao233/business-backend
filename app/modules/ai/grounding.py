@@ -187,6 +187,21 @@ def abstain_message() -> str:
     return get_settings().rag_abstain_message
 
 
+def is_refusal(answer: str) -> bool:
+    """判断回答是否是「明确拒答 / 声明无法确认」（整段判断，非逐句）。
+
+    供评测框架判「宽松拒答口径」用（`tests/rag/`：进入 ABSTAIN 或正文明确声明无法确认都算通过）。
+    与 `audit_answer()` 的拒答措辞白名单**同源**（共用 `_REFUSAL_MARKERS`），
+    因此评测口径与线上审计口径不会漂移。
+    """
+    text = (answer or "").strip()
+    if not text:
+        return False
+    if abstain_message() in text:
+        return True
+    return any(marker in text for marker in _REFUSAL_MARKERS)
+
+
 def grounding_prompt_enabled(config: dict | None) -> bool:
     """是否需要注入严格接地提示词（绑定知识库 **且** `rag_grounding_enabled` 开启）。
 

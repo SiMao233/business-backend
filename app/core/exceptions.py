@@ -1,7 +1,7 @@
 """全局异常体系与统一异常处理。
 
 业务异常约定：
-- `code`：业务错误码（0 表示成功，非 0 表示业务错误）
+- `code`：业务错误码（**成功为 200**，见 `app/common/response.py` 的 `SUCCESS_CODE`）
 - `http_status`：HTTP 状态码
 """
 
@@ -68,7 +68,7 @@ class ValidateError(AppError):
 
 def register_exception_handlers(app: FastAPI) -> None:
     """注册全局异常处理器，统一输出 `ApiResponse` 结构。"""
-    
+
     @app.exception_handler(AppError)
     async def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
         return JSONResponse(
